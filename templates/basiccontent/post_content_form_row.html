@@ -1,0 +1,58 @@
+{% load widget_tweaks %}
+{% load content_tags %}
+
+<div class="card mb-3" id="content-form-{{ index }}">
+    <div class="card-body">
+        {{ form.id }}
+        <div class="row">
+            <div class="col-11">
+                <div class="mb-3">
+                    <label class="form-label">콘텐츠 # {{ index }}</label>
+                    {% if form.content.errors %}
+                        <div class="invalid-feedback">{{ form.content.errors }}</div>
+                    {% endif %}
+
+                    {% with content_obj=form.content.value|get_content_object %}
+                        {% if content_obj %}
+                            <div class="mt-3 content-preview">
+                                {% if content_obj|content_type == 'text' %}
+                                    <div class="border p-3 rounded bg-light">
+                                        {{ content_obj.text|linebreaks }}
+                                    </div>
+                                {% elif content_obj|content_type == 'image' %}
+                                    <div class="mt-2">
+                                        <img src="{{ content_obj.image.url }}" class="img-fluid rounded" alt="Content image" style="max-width: 250px; max-height: 250px;">
+                                    </div>
+                                {% elif content_obj|content_type == 'file' %}
+                                    <div class="mt-2">
+                                        <a href="{{ content_obj.file.url }}" class="btn btn-outline-secondary btn-sm">
+                                            <i class="bi bi-file-earmark"></i> {{ content_obj.file.name|get_filename }}
+                                        </a>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                </div>
+            </div>
+            <div class="col-1">
+                {% if form.instance.id %}
+                <button type="button"
+                        class="btn btn-danger"
+                        hx-delete="{% url 'basiccontent:delete-content' form.instance.id %}"
+                        hx-target="#content-form-{{ index }}"
+                        hx-confirm="정말 삭제하시겠습니까?">
+                    삭제
+                </button>
+                {% else %}
+                <button type="button"
+                        class="btn btn-danger"
+                        onclick="this.closest('.card').remove()">
+                    삭제
+                </button>
+                {% endif %}
+            </div>
+        </div>
+        {{ form.DELETE|add_class:"d-none" }}
+    </div>
+</div>

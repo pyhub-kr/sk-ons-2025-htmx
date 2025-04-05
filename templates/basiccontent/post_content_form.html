@@ -1,0 +1,40 @@
+{% load content_tags %}
+
+<div class="modal-header">
+    <h5 class="modal-title">콘텐츠 관리</h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <form hx-post="{% url 'basiccontent:post-content-update' object.pk %}"
+          hx-target="#content-list-{{ object.pk }}"
+          class="needs-validation"
+          novalidate>
+        {% csrf_token %}
+        {{ formset.management_form }}
+
+        <div id="content-forms">
+            {% for form in formset %}
+                {% include 'basiccontent/post_content_form_row.html' with form=form index=forloop.counter0 %}
+            {% endfor %}
+        </div>
+
+        <div class="mb-3">
+            <input type="hidden" name="post" value="{{ object.pk }}">
+            <label class="form-label">새 콘텐츠 추가</label>
+            <select class="form-select"
+                    name="content_type"
+                    hx-get="{% url 'basiccontent:get-content-form' %}"
+                    hx-target="#new-content-form"
+                    hx-trigger="change"
+                    hx-include="[name='post'], this">
+                <option value="">콘텐츠 타입 선택</option>
+                {% for ct in content_types %}
+                    <option value="{{ ct.id }}">{{ ct.model|title }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div id="new-content-form"></div>
+    </form>
+</div>

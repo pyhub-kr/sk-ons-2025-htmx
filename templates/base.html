@@ -1,0 +1,23 @@
+{% load widget_tweaks %}
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% load static %}
+{% csrf_token %}
+
+<script src="https://unpkg.com/htmx.org@2.0.4"></script>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+</head>
+<body>
+
+{% block content %}
+
+{% endblock %}
+
+</body>
+</html>

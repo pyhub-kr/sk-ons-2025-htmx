@@ -1,0 +1,23 @@
+{% load widget_tweaks %}
+
+<div class="card mt-3">
+    <div class="card-body">
+        <form hx-post="{% url 'basiccontent:create-content' %}"
+              hx-trigger="submit"
+              hx-target="#content-forms"
+              hx-swap="beforeend"
+              hx-on::after-request="location.reload()"
+              enctype="multipart/form-data">
+            {% csrf_token %}
+            <input type="hidden" name="content_type" value="{{ content_type.id }}">
+            <input type="hidden" name="post" value="{{ post_id }}">
+
+            <div class="mb-3">
+                <label class="form-label">이미지</label>
+                {{ form.image|add_class:"form-control" }}
+            </div>
+
+            <button type="submit" class="btn btn-primary">추가</button>
+        </form>
+    </div>
+</div>

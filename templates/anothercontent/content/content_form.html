@@ -1,0 +1,127 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+  <div class="container mt-4">
+    <h1>{% if object %}콘텐츠 수정{% else %}새 콘텐츠 생성{% endif %}</h1>
+    
+    <form method="post" enctype="multipart/form-data" id="content-form">
+      {% csrf_token %}
+      
+      <div class="card mb-4">
+        <div class="card-header">
+          <h4>기본 정보</h4>
+        </div>
+        <div class="card-body">
+          {{ form.non_field_errors }}
+          
+          <div class="mb-3">
+            <label for="{{ form.title.id_for_label }}">제목</label>
+            {{ form.title }}
+            {{ form.title.errors }}
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form.description.id_for_label }}">설명</label>
+            {{ form.description }}
+            {{ form.description.errors }}
+          </div>
+          
+          <div class="mb-3">
+            <label for="{{ form.content_type.id_for_label }}">콘텐츠 유형</label>
+            {{ form.content_type }}
+            {{ form.content_type.errors }}
+          </div>
+        </div>
+      </div>
+      
+      <!-- 미디어 섹션 -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4>미디어</h4>
+          <button type="button" class="btn btn-sm btn-primary" 
+                  hx-get="{% url 'add_media_form' %}" 
+                  hx-target="#media-forms-container" 
+                  hx-swap="beforeend"
+                  hx-vals='{"form_idx": "{{ media_formset.total_form_count }}"}'>
+            미디어 추가
+          </button>
+        </div>
+        <div class="card-body">
+          {{ media_formset.management_form }}
+          <div id="media-forms-container">
+            {% for form in media_formset %}
+              {% include "anothercontent/content/partials/media_form.html" with form=form form_idx=forloop.counter0 %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <!-- 질문 섹션 -->
+      <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+          <h4>질문</h4>
+          <button type="button" class="btn btn-sm btn-primary" 
+                  hx-get="{% url 'add_question_form' %}" 
+                  hx-target="#question-forms-container" 
+                  hx-swap="beforeend"
+                  hx-vals='{"form_idx": "{{ question_formset.total_form_count }}"}'>
+            질문 추가
+          </button>
+        </div>
+        <div class="card-body">
+          {{ question_formset.management_form }}
+          <div id="question-forms-container">
+            {% for form in question_formset %}
+              {% include "anothercontent/content/partials/question_form.html" with form=form form_idx=forloop.counter0 %}
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+      
+      <div class="mb-4">
+        <button type="submit" class="btn btn-primary">저장</button>
+{#        <a href="{% url 'content_list' %}" class="btn btn-secondary">취소</a>#}
+      </div>
+    </form>
+  </div>
+{% endblock %}
+
+{% block extra_js %}
+  <script>
+    // 폼셋 관리를 위한 함수들
+    document.addEventListener('DOMContentLoaded', function() {
+      // 폼셋 Total Forms 카운트 업데이트
+      htmx.on('htmx:afterSwap', function(event) {
+        if (event.detail.target.id === 'media-forms-container') {
+          updateFormsetCounter('id_media_items-TOTAL_FORMS');
+        } else if (event.detail.target.id === 'question-forms-container') {
+          updateFormsetCounter('id_questions-TOTAL_FORMS');
+        } else if (event.detail.target.classList.contains('choices-container')) {
+          const questionId = event.detail.target.dataset.questionId;
+          updateFormsetCounter(`id_question-${questionId}-choices-TOTAL_FORMS`);
+        }
+      });
+      
+      // 폼 삭제 기능
+      document.body.addEventListener('click', function(e) {
+        if (e.target.classList.contains('delete-form-btn')) {
+          const formContainer = e.target.closest('.form-container');
+          formContainer.style.display = 'none';
+          const deleteInput = formContainer.querySelector('input[name$="-DELETE"]');
+          if (deleteInput) {
+            deleteInput.value = 'on';
+          }
+        }
+      });
+    });
+    
+    function updateFormsetCounter(formsetId) {
+      const managementForm = document.getElementById(formsetId);
+      if (managementForm) {
+        const forms = document.querySelectorAll(`[id^="${formsetId.replace('TOTAL_FORMS', '')}"][id$="-media_type"], [id^="${formsetId.replace('TOTAL_FORMS', '')}"][id$="-question_text"], [id^="${formsetId.replace('TOTAL_FORMS', '')}"][id$="-choice_text"]`);
+        managementForm.value = forms.length;
+      }
+    }
+  </script>
+{% endblock %}

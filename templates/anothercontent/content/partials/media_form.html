@@ -1,0 +1,34 @@
+<div class="form-container media-form mb-3 border p-3 rounded" data-form-idx="{{ form_idx }}">
+  {{ form.id }}
+  {{ form.DELETE.as_hidden }}
+
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <h5>미디어 #{{ form_idx|add:"1" }}</h5>
+    <button type="button" class="btn btn-sm btn-danger delete-form-btn">삭제</button>
+  </div>
+
+  <div class="mb-3">
+    <label for="{{ form.media_type.id_for_label }}">미디어 타입</label>
+    <select name="{{ form.media_type.html_name }}" id="{{ form.media_type.id_for_label }}"
+            class="form-control"
+            hx-get="{% url 'toggle_media_fields' %}"
+            hx-target="#media-fields-{{ form_idx }}"
+            hx-swap="innerHTML"
+            hx-vals='{"form_idx": "{{ form_idx }}"}'>
+      {% for value, text in form.fields.media_type.choices %}
+        <option value="{{ value }}" {% if form.media_type.value == value %}selected{% endif %}>{{ text }}</option>
+      {% endfor %}
+    </select>
+    {{ form.media_type.errors }}
+  </div>
+
+  <div id="media-fields-{{ form_idx }}">
+    {% include "anothercontent/content/partials/media_fields.html" with media_type=form.media_type.value|default:"" form=form form_idx=form_idx %}
+  </div>
+
+  <div class="mb-2">
+    <label for="{{ form.order.id_for_label }}">순서</label>
+    <input type="number" name="{{ form.order.html_name }}" id="{{ form.order.id_for_label }}"
+           value="{{ form.order.value|default:form_idx }}" class="form-control">
+  </div>
+</div>
