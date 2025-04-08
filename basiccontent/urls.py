@@ -17,9 +17,9 @@ urlpatterns = [
 
     # SubPost CRUD
     path('subposts/<int:post_id>/list/', views.SubPostListView.as_view(), name='subpost-list'),
-    path('subposts/<int:post_id>/create/', views.SubPostOptionCreateView.as_view(), name='subpost-create'),
-    path('subposts/<int:pk>/update/', views.MainPostUpdateView.as_view(), name='subpost-update'),
-    path('subposts/<int:pk>/delete/', views.MainPostDeleteView.as_view(), name='subpost-delete'),
+    path('subposts/<int:post_id>/create/', views.SubPostCreateView.as_view(), name='subpost-create'),
+    path('subposts/<int:pk>/update/', views.SubPostUpdateView.as_view(), name='subpost-update'),
+    path('subposts/<int:pk>/delete/', views.SubPostDeleteView.as_view(), name='subpost-delete'),
 
     # contents
     path('posts/<int:pk>/contents/', views.PostContentUpdateView.as_view(), name='post-content-update'),

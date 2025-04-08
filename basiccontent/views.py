@@ -101,7 +101,7 @@ class SubPostListView(ListView):
         return context
 
 
-class SubPostOptionCreateView(CreateView):
+class SubPostCreateView(CreateView):
     model = SubPost
     form_class = SubPostForm
     template_name = 'basiccontent/subpost/subpost_form.html'
@@ -118,8 +118,8 @@ class SubPostOptionCreateView(CreateView):
         response = super().form_valid(form)
 
         if self.request.headers.get('HX-Request'):
-            post_options = SubPost.objects.all()
-            return render(self.request, 'basiccontent/subpost/subpost_list_partials.html', {'post_options': post_options})
+            sub_posts = SubPost.objects.all()
+            return render(self.request, 'basiccontent/subpost/subpost_list_partials.html', {'sub_posts': sub_posts})
         return response
 
     def get_context_data(self, **kwargs):
@@ -131,6 +131,40 @@ class SubPostOptionCreateView(CreateView):
         if self.request.headers.get('HX-Request'):
             return self.request.path
         return super().get_success_url()
+
+class SubPostUpdateView(UpdateView):
+    model = SubPost
+    form_class = SubPostForm
+    template_name = 'basiccontent/subpost/subpost_form.html'
+    context_object_name = 'sub_posts'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        if self.request.headers.get('HX-Request'):
+            sub_posts = SubPost.objects.all()
+            return render(self.request, 'basiccontent/subpost/subpost_list_partials.html', {'sub_posts': sub_posts})
+        return response
+
+    def get_success_url(self):
+        if self.request.headers.get('HX-Request'):
+            return self.request.path
+        return super().get_success_url()
+
+
+class SubPostDeleteView(DeleteView):
+    model = SubPost
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if self.request.headers.get('HX-Request'):
+            sub_posts = SubPost.objects.all()
+            return render(self.request, 'basiccontent/subpost/subpost_list_partials.html', {'sub_posts': sub_posts})
+        return super().delete(request, *args, **kwargs)
+
+
 
 ## Content CRUD Views
 class PostContentUpdateView(UpdateView):

@@ -27,25 +27,25 @@
                     <div class="col-md-4">
                         <div class="d-flex justify-content-end h-100">
                             <button
-                                class="btn btn-warning mb-2"
-                                hx-get="{% url 'basiccontent:sub_posts-update' sub_post.id %}"
+                                class="btn btn-warning mb-2 w-70"
+                                hx-get="{% url 'basiccontent:subpost-update' sub_post.id %}"
                                 hx-target="#form-dialog">
                                 수정
                             </button>
                             <button
-                                class="btn btn-danger mb-2"
-                                hx-delete="{% url 'basiccontent:sub_posts-delete' sub_post.id %}"
-                                hx-target="#post-list"
+                                class="btn btn-danger mb-2 w-70"
+                                hx-delete="{% url 'basiccontent:subpost-delete' sub_post.id %}"
+                                hx-target="#subpost-list"
                                 hx-confirm="정말 삭제하시겠습니까?">
                                 삭제
                             </button>
                             <button
-                                class="btn btn-info mb-2"
+                                class="btn btn-info mb-2 w-70"
                                 hx-get="{% url 'basiccontent:post-content-update' sub_post.id %}"
                                 hx-target="#form-dialog">
                                 콘텐츠<br/>관리
                             </button>
-                            <a href="{% url 'basiccontent:option-list' sub_post.id %}" class="btn btn-secondary">서브필드</a>
+                            <a href="{% url 'basiccontent:option-list' sub_post.id %}" class="btn btn-secondary mb-2 w-70">옵션</a>
                         </div>
                     </div>
                 </div>
@@ -53,6 +53,7 @@
         </div>
         {% endfor %}
     </div>
+    <button type="button" class="btn btn-secondary" onclick="history.back()">Main으로</button>
 </div>
 
 <!-- Modal for form -->
