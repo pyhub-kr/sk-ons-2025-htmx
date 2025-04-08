@@ -3,10 +3,7 @@
     <div class="card-body">
         <div class="row">
             <div class="col-md-8">
-                {% for post in post_option.post.all %}
-                    <h7 class="card-title">글 정보 : {{ post.title }}</h7>
-                {% endfor %}
-                <p class="text-muted small">{{ post_option.option_order }}</p>
+                <p class="card-text">option순서 : {{ post_option.option_order }}</p>
                 <p class="card-text mt-2">{{ post_option.description|linebreaks }}</p>
             </div>
             <div class="col-md-4">
@@ -21,7 +18,7 @@
                         <button
                             class="btn btn-danger mb-2"
                             hx-delete="{% url 'basiccontent:option-delete' post_option.id %}"
-                            hx-target="#post_option-{{ post_option.id }}"
+                            hx-target="#options-list"
                             hx-confirm="정말 삭제하시겠습니까?">
                             삭제
                         </button>

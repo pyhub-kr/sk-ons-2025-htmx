@@ -20,36 +20,27 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-8">
-                        <h7 class="card-title">글 제목 : {{ post.title }}</h7>
+                        <a href="{% url 'basiccontent:subpost-list' post.id %}"><h7 class="card-title">글 제목 : {{ post.title }}</h7></a>
                         <p class="card-text mt-2">{{ post.description|linebreaks }}</p>
                     </div>
                     <div class="col-md-4">
                         <div class="d-flex justify-content-end h-100">
-                            <div class="btn-group">
-                                <a href="{% url 'basiccontent:post-detail' post.id %}" class="btn btn-info">
-                                    글 내용<br/>확인하기
-                                </a>
-                            </div>
+                            <a href="{% url 'basiccontent:post-detail' post.id %}" class="btn btn-info mb-2 w-70">
+                                글 내용<br/>확인하기
+                            </a>
                             <button
-                                class="btn btn-warning mb-2"
+                                class="btn btn-warning mb-2 w-70"
                                 hx-get="{% url 'basiccontent:post-update' post.id %}"
                                 hx-target="#form-dialog">
                                 수정
                             </button>
                             <button
-                                class="btn btn-danger mb-2"
+                                class="btn btn-danger mb-2 w-70"
                                 hx-delete="{% url 'basiccontent:post-delete' post.id %}"
                                 hx-target="#post-list"
                                 hx-confirm="정말 삭제하시겠습니까?">
                                 삭제
                             </button>
-                            <button
-                                class="btn btn-info mb-2"
-                                hx-get="{% url 'basiccontent:post-content-update' post.id %}"
-                                hx-target="#form-dialog">
-                                콘텐츠<br/>관리
-                            </button>
-                            <a href="{% url 'basiccontent:option-list' post.id %}" class="btn btn-secondary">서브필드</a>
                         </div>
                     </div>
                 </div>

@@ -8,24 +8,24 @@
 </div>
 
 <div class="modal-body">
-    <form hx-post="{% if form.instance.pk %}{% url 'basiccontent:option-update' form.instance.pk %}{% else %}{% url 'basiccontent:option-create' post_id %}{% endif %}"
+    <form hx-post="{% if form.instance.pk %}{% url 'basiccontent:option-update' form.instance.pk %}{% else %}{% url 'basiccontent:option-create' subpost_id %}{% endif %}"
           hx-target="#options-list"
           class="needs-validation"
           novalidate>
         {% csrf_token %}
 
         <div class="mb-3">
-            <label class="form-label">Post</label>
+            <label class="form-label">sub Post</label>
             {{ form.post|add_class:"form-select" }}
         </div>
 
         <div class="mb-3">
-            <label class="form-label">서브필드 순서</label>
+            <label class="form-label">옵션 순서</label>
             {{ form.option_order|add_class:"form-control" }}
         </div>
 
         <div class="mb-3">
-            <label class="form-label">서브필드 내용</label>
+            <label class="form-label">옵션 내용</label>
             {{ form.description|add_class:"form-control" }}
         </div>
 

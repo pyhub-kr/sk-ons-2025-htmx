@@ -16,15 +16,21 @@ class CustomBaseModelFormSet(BaseModelFormSet):
             )
 
 # 메인 글의 폼
-class BasicPostForm(forms.ModelForm):
+class MainPostForm(forms.ModelForm):
     class Meta:
-        model = BasicPost
-        fields = ['title', 'description', 'post_type']
+        model = MainPost
+        fields = ['title', 'description']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 5}),
-            'post_type': forms.Select(attrs={'class': 'form-control'}),
         }
 
+class SubPostForm(forms.ModelForm):
+    class Meta:
+        model = SubPost
+        fields = ['main_post', 'post_type', 'title', 'description']
+        widgets = {
+            'description': forms.Textarea(attrs={'rows': 5}),
+        }
 
 
 ## 컨텐츠 타입 폼
@@ -68,7 +74,7 @@ class PostContentForm(forms.ModelForm):
 
 
 PostContentFormSet = inlineformset_factory(
-    parent_model=BasicPost,
+    parent_model=SubPost,
     model=PostContent,
     form=PostContentForm,
     fk_name='post',
