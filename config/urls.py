@@ -22,7 +22,7 @@ from basiccontent import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', views.BasicPostListView.as_view(), name='post-list'),
+    path('', views.MainPostListView.as_view(), name='post-list'),
     path('basiccontent/', include('basiccontent.urls')),
 ]
 

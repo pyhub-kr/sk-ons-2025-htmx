@@ -8,12 +8,10 @@ from basiccontent.forms import *
 from django.contrib.contenttypes.models import ContentType
 from django.views.generic import *
 
-def index(request):
-    return render(request, 'basiccontent/post_list.html')
 
-## BasicPost CRUD Views
-class BasicPostListView(ListView):
-    model = BasicPost
+## MainPost CRUD Views
+class MainPostListView(ListView):
+    model = MainPost
     template_name = 'basiccontent/post_list.html'
     context_object_name = 'posts'
 
@@ -23,16 +21,16 @@ class BasicPostListView(ListView):
         return context
 
 
-class BasicPostCreateView(CreateView):
-    model = BasicPost
-    form_class = BasicPostForm
+class MainPostCreateView(CreateView):
+    model = MainPost
+    form_class = MainPostForm
     template_name = 'basiccontent/post_form.html'
 
     def form_valid(self, form):
         response = super().form_valid(form)
 
         if self.request.headers.get('HX-Request'):
-            posts = BasicPost.objects.all()
+            posts = MainPost.objects.all()
             return render(self.request, 'basiccontent/partials/post_list_partials.html', {'posts': posts})
         return response
 
@@ -42,16 +40,16 @@ class BasicPostCreateView(CreateView):
         return super().get_success_url()
 
 
-class BasicPostUpdateView(UpdateView):
-    model = BasicPost
-    form_class = BasicPostForm
+class MainPostUpdateView(UpdateView):
+    model = MainPost
+    form_class = MainPostForm
     template_name = 'basiccontent/post_form.html'
 
     def form_valid(self, form):
         response = super().form_valid(form)
 
         if self.request.headers.get('HX-Request'):
-            posts = BasicPost.objects.all()
+            posts = MainPost.objects.all()
             return render(self.request, 'basiccontent/partials/post_list_partials.html', {'posts': posts})
         return response
 
@@ -61,35 +59,52 @@ class BasicPostUpdateView(UpdateView):
         return super().get_success_url()
 
 
-class BasicPostDeleteView(DeleteView):
-    model = BasicPost
+class MainPostDeleteView(DeleteView):
+    model = MainPost
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
         self.object.delete()
 
         if self.request.headers.get('HX-Request'):
-            posts = BasicPost.objects.all()
+            posts = MainPost.objects.all()
             return render(self.request, 'basiccontent/partials/post_list_partials.html', {'posts': posts})
         return super().delete(request, *args, **kwargs)
 
 
 
-class BasicPostDetailView(ListView):
-    model = BasicPost
+class MainPostDetailView(ListView):
+    model = MainPost
     template_name = 'basiccontent/post_detail.html'
     context_object_name = 'posts'
 
     def get_queryset(self):
         post_id = self.kwargs.get('pk')
-        posts = BasicPost.objects.filter(id=post_id).prefetch_related('postcontent_set', Prefetch('postoptions_set', queryset=PostOptions.objects.order_by('option_order')))
+        posts = MainPost.objects.filter(id=post_id)
         return posts
+
+
+## SubPost CRUD Views
+class SubPostListView(ListView):
+    model = SubPost
+    template_name = 'basiccontent/subpost/subpost_list.html'
+    context_object_name = 'sub_posts'
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        sub_posts = SubPost.objects.filter(main_post__id=post_id).select_related('main_post')
+        return sub_posts
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post_id'] = self.kwargs.get('post_id')
+        return context
 
 
 
 ## Content CRUD Views
 class PostContentUpdateView(UpdateView):
-    model = BasicPost
+    model = SubPost
     template_name = 'basiccontent/post_content_form.html'
     fields = []
 
@@ -215,7 +230,7 @@ class PostOptionCreateView(CreateView):
         initial = super().get_initial()
         post_id = self.request.GET.get('post_id')
         if post_id:
-            initial['post'] = BasicPost.objects.filter(id=post_id)
+            initial['post'] = SubPost.objects.filter(id=post_id)
         return initial
 
     def form_valid(self, form):
