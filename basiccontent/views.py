@@ -1,3 +1,4 @@
+from django.db.models import Prefetch
 from django.http import HttpResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_http_methods
@@ -8,7 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.views.generic import *
 
 def index(request):
-    return render(request, 'home.html')
+    return render(request, 'basiccontent/post_list.html')
 
 ## BasicPost CRUD Views
 class BasicPostListView(ListView):
@@ -81,7 +82,7 @@ class BasicPostDetailView(ListView):
 
     def get_queryset(self):
         post_id = self.kwargs.get('pk')
-        posts = BasicPost.objects.filter(id=post_id).prefetch_related('postcontent_set', 'postoptions_set')
+        posts = BasicPost.objects.filter(id=post_id).prefetch_related('postcontent_set', Prefetch('postoptions_set', queryset=PostOptions.objects.order_by('option_order')))
         return posts
 
 
