@@ -7,6 +7,9 @@ from basiccontent.forms import *
 from django.contrib.contenttypes.models import ContentType
 from django.views.generic import *
 
+def index(request):
+    return render(request, 'home.html')
+
 ## BasicPost CRUD Views
 class BasicPostListView(ListView):
     model = BasicPost
@@ -68,6 +71,19 @@ class BasicPostDeleteView(DeleteView):
             posts = BasicPost.objects.all()
             return render(self.request, 'basiccontent/partials/post_list_partials.html', {'posts': posts})
         return super().delete(request, *args, **kwargs)
+
+
+
+class BasicPostDetailView(ListView):
+    model = BasicPost
+    template_name = 'basiccontent/post_detail.html'
+    context_object_name = 'posts'
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('pk')
+        posts = BasicPost.objects.filter(id=post_id).prefetch_related('postcontent_set', 'postoptions_set')
+        return posts
+
 
 
 ## Content CRUD Views
@@ -170,3 +186,86 @@ class DeleteContentView(View):
         item.delete()
         content.delete()
         return HttpResponse(status=200)
+
+
+## Post Options CRUDViews
+class PostOptionListView(ListView):
+    model = PostOptions
+    template_name = 'basiccontent/postoptions/post_option_list.html'
+    context_object_name = 'post_options'
+
+    def get_queryset(self):
+        post_id = self.kwargs.get('post_id')
+        post_options = PostOptions.objects.filter(post__in=[post_id]).prefetch_related('post').order_by('option_order')
+        return post_options
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post_id'] = self.kwargs.get('post_id')
+        return context
+
+class PostOptionCreateView(CreateView):
+    model = PostOptions
+    form_class = PostOptionsForm
+    template_name = 'basiccontent/postoptions/post_option_form.html'
+    context_object_name = 'post_options'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        post_id = self.request.GET.get('post_id')
+        if post_id:
+            initial['post'] = BasicPost.objects.filter(id=post_id)
+        return initial
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        if self.request.headers.get('HX-Request'):
+            post_options = PostOptions.objects.all()
+            return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post_id'] = self.kwargs.get('post_id')
+        return context
+
+    def get_success_url(self):
+        if self.request.headers.get('HX-Request'):
+            return self.request.path
+        return super().get_success_url()
+
+
+class PostOptionUpdateView(UpdateView):
+    model = PostOptions
+    form_class = PostOptionsForm
+    template_name = 'basiccontent/postoptions/post_option_form.html'
+    context_object_name = 'post_options'
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        if self.request.headers.get('HX-Request'):
+            post_options = PostOptions.objects.all()
+            return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
+        return response
+
+    def get_success_url(self):
+        if self.request.headers.get('HX-Request'):
+            return self.request.path
+        return super().get_success_url()
+
+
+class PostOptionDeleteView(DeleteView):
+    model = PostOptions
+
+    def delete(self, request, *args, **kwargs):
+        self.object = self.get_object()
+        self.object.delete()
+
+        if self.request.headers.get('HX-Request'):
+            post_options = PostOptions.objects.all()
+            return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
+        return super().delete(request, *args, **kwargs)
+
+

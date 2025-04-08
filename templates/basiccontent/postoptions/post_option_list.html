@@ -1,55 +1,47 @@
 {% extends 'base.html' %}
-{% load content_tags %}
 
 {% block content %}
 <div class="container mt-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h2">글 목록</h1>
+        <h1 class="h2">옵션 목록</h1>
         <button
             class="btn btn-primary"
-            hx-get="{% url 'basiccontent:post-create' %}"
+            hx-get="{% url 'basiccontent:option-create' post_id %}"
             hx-target="#form-dialog"
             hx-trigger="click">
-            새 글 추가
+            새 옵션 추가
         </button>
     </div>
 
-    <div id="post-list">
-        {% for post in posts %}
-        <div class="card mb-3" id="post-{{ post.id }}">
+    <div id="options-list">
+        {% for post_option in post_options %}
+        <div class="card mb-3" id="post_option-{{ post_option.id }}">
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-8">
-                        <h7 class="card-title">글 제목 : {{ post.title }}</h7>
-                        <p class="card-text mt-2">{{ post.description|linebreaks }}</p>
+                        {% for post in post_option.post.all %}
+                            <h7 class="card-title">글 정보 : {{ post.title }}</h7>
+                        {% endfor %}
+                        <p class="text-muted small">option num : {{ post_option.option_order }}</p>
+                        <p class="card-text mt-2">{{ post_option.description|linebreaks }}</p>
                     </div>
                     <div class="col-md-4">
                         <div class="d-flex justify-content-end h-100">
                             <div class="btn-group">
-                                <a href="{% url 'basiccontent:post-detail' post.id %}" class="btn btn-info">
-                                    글 내용<br/>확인하기
-                                </a>
+                                <button
+                                    class="btn btn-warning mb-2"
+                                    hx-get="{% url 'basiccontent:option-update' post_option.id %}"
+                                    hx-target="#form-dialog">
+                                    수정
+                                </button>
+                                <button
+                                    class="btn btn-danger mb-2"
+                                    hx-delete="{% url 'basiccontent:option-delete' post_option.id %}"
+                                    hx-target="#post_option-{{ post_option.id }}"
+                                    hx-confirm="정말 삭제하시겠습니까?">
+                                    삭제
+                                </button>
                             </div>
-                            <button
-                                class="btn btn-warning mb-2"
-                                hx-get="{% url 'basiccontent:post-update' post.id %}"
-                                hx-target="#form-dialog">
-                                수정
-                            </button>
-                            <button
-                                class="btn btn-danger mb-2"
-                                hx-delete="{% url 'basiccontent:post-delete' post.id %}"
-                                hx-target="#post-list"
-                                hx-confirm="정말 삭제하시겠습니까?">
-                                삭제
-                            </button>
-                            <button
-                                class="btn btn-info mb-2"
-                                hx-get="{% url 'basiccontent:post-content-update' post.id %}"
-                                hx-target="#form-dialog">
-                                콘텐츠<br/>관리
-                            </button>
-                            <a href="{% url 'basiccontent:option-list' post.id %}" class="btn btn-secondary">서브필드</a>
                         </div>
                     </div>
                 </div>
@@ -57,6 +49,7 @@
         </div>
         {% endfor %}
     </div>
+    <button type="button" class="btn btn-secondary" onclick="history.back()">뒤로가기</button>
 </div>
 
 <!-- Modal for form -->
@@ -84,7 +77,7 @@
     });
 
     document.body.addEventListener('htmx:beforeSwap', function(evt) {
-        if (evt.detail.target.id === "post-list") {
+        if (evt.detail.target.id === "options-list") {
             // 폼 제출 성공 후 모달 닫기
             formModal.hide();
         }
@@ -96,5 +89,4 @@
         evt.detail.headers['X-CSRFToken'] = csrfToken;
     });
 </script>
-
 {% endblock %}

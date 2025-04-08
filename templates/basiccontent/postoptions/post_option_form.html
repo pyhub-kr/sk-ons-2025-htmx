@@ -1,0 +1,41 @@
+{% load widget_tweaks %}
+
+<div class="modal-header">
+    <h5 class="modal-title">
+        {% if form.instance.pk %}수정하기{% else %}새 옵션 추가{% endif %}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <form hx-post="{% if form.instance.pk %}{% url 'basiccontent:option-update' form.instance.pk %}{% else %}{% url 'basiccontent:option-create' post_id %}{% endif %}"
+          hx-target="#options-list"
+          class="needs-validation"
+          novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Post</label>
+            {{ form.post|add_class:"form-select" }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">서브필드 순서</label>
+            {{ form.option_order|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">서브필드 내용</label>
+            {{ form.description|add_class:"form-control" }}
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                취소
+            </button>
+            <button type="submit" class="btn btn-primary">
+                저장
+            </button>
+        </div>
+    </form>
+</div>

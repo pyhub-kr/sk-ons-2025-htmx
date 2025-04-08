@@ -51,6 +51,9 @@ class BasicPost(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    def __str__(self):
+        return self.title
+
 
 class PostContent(models.Model):
     """ 메인 글에 넣을 컨텐츠"""

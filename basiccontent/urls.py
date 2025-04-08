@@ -22,8 +22,8 @@ urlpatterns = [
     path('contents/<int:pk>/delete/', views.DeleteContentView.as_view(), name='delete-content'),
 
     # post options
-    path('posts/option/<int:pk>/list/', views.PostOptionListView.as_view(), name='option-list'),
-    path('posts/option/create/', views.PostOptionCreateView.as_view(), name='option-create'),
+    path('posts/option/<int:post_id>/list/', views.PostOptionListView.as_view(), name='option-list'),
+    path('posts/option/<int:post_id>/create/', views.PostOptionCreateView.as_view(), name='option-create'),
     path('posts/option/<int:pk>/update/', views.PostOptionUpdateView.as_view(), name='option-update'),
     path('posts/option/<int:pk>/delete/', views.PostOptionDeleteView.as_view(), name='option-delete'),
 

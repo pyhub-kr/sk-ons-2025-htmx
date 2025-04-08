@@ -87,7 +87,7 @@ PostContentTypeFormSet = inlineformset_factory(
 
 
 # 서브필드 폼
-class PostOptions(forms.ModelForm):
+class PostOptionsForm(forms.ModelForm):
     class Meta:
         model = PostOptions
-        fields = '__all__'
+        fields = ['post', 'option_order', 'description']
