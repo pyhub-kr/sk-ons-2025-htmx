@@ -53,7 +53,6 @@ INSTALLED_APPS = [
     "bootstrap5",
 
     'basiccontent',
-    'anothercontent',
 
 ]
 
