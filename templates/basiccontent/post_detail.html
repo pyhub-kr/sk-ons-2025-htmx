@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="post-container">
+    <h1 class="post-title">{{ posts.0.title }}</h1>
+    <p class="post-description">{{ posts.0.description|linebreaksbr }}</p>
+
+    {% for post in posts %}
+        <div class="post-card">
+            {% if post.postcontent_set.exists %}
+                {% for content in post.postcontent_set.all %}
+                    {% if content.content.content_type.model == 'text' %}
+                        <p>{{ content.content.item.text|linebreaksbr }}</p>
+                    {% elif content.content.content_type.model == 'file' %}
+                        <a href="{{ content.content.item.file.url }}" class="file-download">
+                            <i class="fas fa-download me-2"></i>Download File
+                        </a>
+                    {% elif content.content.content_type.model == 'image' %}
+                        <div class="image-container">
+                            <img src="{{ content.content.item.image.url }}" alt="Post Image" class="content-image">
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+        </div>
+
+        <div class="post-card">
+            {% if post.postoptions_set.exists %}
+                {% for option in post.postoptions_set.all %}
+                    <div class="post-number">Post Option {{ option.option_order }}</div>
+                    <div class="post-text">{{ option.description|linebreaksbr }}</div>
+                {% endfor %}
+            {% endif %}
+        </div>
+    {% endfor %}
+
+<button type="button" class="btn btn-secondary" onclick="history.back()">post로 돌아가기</button>
+</div>
+{% endblock %}
