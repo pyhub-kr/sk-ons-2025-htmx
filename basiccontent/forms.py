@@ -19,7 +19,7 @@ class CustomBaseModelFormSet(BaseModelFormSet):
 class MainPostForm(forms.ModelForm):
     class Meta:
         model = MainPost
-        fields = ['title', 'description', 'post_type']
+        fields = ['title', 'description']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 5}),
         }
@@ -27,7 +27,7 @@ class MainPostForm(forms.ModelForm):
 class SubPostForm(forms.ModelForm):
     class Meta:
         model = SubPost
-        fields = ['main_post', 'title', 'description']
+        fields = ['main_post', 'post_type', 'title', 'description']
         widgets = {
             'description': forms.Textarea(attrs={'rows': 5}),
         }

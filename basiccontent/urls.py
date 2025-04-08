@@ -6,7 +6,7 @@ app_name = "basiccontent"
 
 urlpatterns = [
 
-    # BasicPost CRUD
+    # MainPost CRUD
     path('posts/list/', views.MainPostListView.as_view(), name='post-list'),
     path('posts/create/', views.MainPostCreateView.as_view(), name='post-create'),
     path('posts/<int:pk>/update/', views.MainPostUpdateView.as_view(), name='post-update'),
@@ -14,6 +14,12 @@ urlpatterns = [
 
     # post + content 확인하기
     path('posts/<int:pk>/detail/', views.MainPostDetailView.as_view(), name='post-detail'),
+
+    # SubPost CRUD
+    path('subposts/list/', views.MainPostListView.as_view(), name='subpost-list'),
+    path('subposts/create/', views.MainPostCreateView.as_view(), name='subpost-create'),
+    path('subposts/<int:pk>/update/', views.MainPostUpdateView.as_view(), name='subpost-update'),
+    path('subposts/<int:pk>/delete/', views.MainPostDeleteView.as_view(), name='subpost-delete'),
 
     # contents
     path('posts/<int:pk>/contents/', views.PostContentUpdateView.as_view(), name='post-content-update'),

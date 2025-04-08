@@ -41,28 +41,32 @@ class Content(models.Model):
 class PostType(models.Model):
     post_type = models.CharField(max_length=30, verbose_name="글 유형")
 
+    def __str__(self):
+        return self.post_type
+
+
 class MainPost(models.Model):
     """메인 글을 정의하는 모델"""
     title = models.CharField(max_length=255, verbose_name="대주제")
-    post_type = models.ForeignKey(PostType, on_delete=models.CASCADE, verbose_name="글 유형")
     description = models.TextField(null=True, blank=True, verbose_name="내용")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"MainPost {self.title}_{self.post_type.post_type}"
+        return f"MainPost {self.title}"
 
 
 class SubPost(models.Model):
     """메인 글에 들어갈 내용"""
     main_post = models.ForeignKey(MainPost, on_delete=models.CASCADE, related_name="sub_posts")
+    post_type = models.ForeignKey(PostType, on_delete=models.CASCADE, verbose_name="글 유형")
     title = models.CharField(max_length=255, verbose_name="서브 제목")
     description = models.TextField(null=True, blank=True, verbose_name="내용")
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"MainPost {self.main_post.title} {self.main_post.post_type.post_type}_SubPost {self.title}"
+        return f"MainPost {self.main_post.title} {self.post_type.post_type}_SubPost {self.title}"
 
 
 class PostContent(models.Model):
