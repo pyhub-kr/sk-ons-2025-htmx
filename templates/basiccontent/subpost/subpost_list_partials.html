@@ -1,0 +1,36 @@
+{% for sub_post in sub_posts %}
+<div class="card mb-3" id="sub_post-{{ sub_post.id }}">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-8">
+                <h7 class="card-title">서브글 제목 : {{ sub_post.title }}</h7>
+                <p class="card-text mt-2">{{ sub_post.description|linebreaks }}</p>
+            </div>
+            <div class="col-md-4">
+                <div class="d-flex justify-content-end h-100">
+                    <button
+                        class="btn btn-warning mb-2"
+                        hx-get="{% url 'basiccontent:sub_posts-update' sub_post.id %}"
+                        hx-target="#form-dialog">
+                        수정
+                    </button>
+                    <button
+                        class="btn btn-danger mb-2"
+                        hx-delete="{% url 'basiccontent:sub_posts-delete' sub_post.id %}"
+                        hx-target="#post-list"
+                        hx-confirm="정말 삭제하시겠습니까?">
+                        삭제
+                    </button>
+                    <button
+                        class="btn btn-info mb-2"
+                        hx-get="{% url 'basiccontent:post-content-update' sub_post.id %}"
+                        hx-target="#form-dialog">
+                        콘텐츠<br/>관리
+                    </button>
+                    <a href="{% url 'basiccontent:option-list' sub_post.id %}" class="btn btn-secondary">서브필드</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endfor %}

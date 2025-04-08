@@ -20,7 +20,7 @@
             <div class="card-body">
                 <div class="row">
                     <div class="col-md-8">
-                        <a href="{% url 'basiccontent:subpost-list' %}"><h7 class="card-title">글 제목 : {{ post.title }}</h7></a>
+                        <a href="{% url 'basiccontent:subpost-list' post.id %}"><h7 class="card-title">글 제목 : {{ post.title }}</h7></a>
                         <p class="card-text mt-2">{{ post.description|linebreaks }}</p>
                     </div>
                     <div class="col-md-4">

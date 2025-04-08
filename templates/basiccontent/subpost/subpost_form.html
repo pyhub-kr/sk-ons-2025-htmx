@@ -1,0 +1,46 @@
+{% load widget_tweaks %}
+
+<div class="modal-header">
+    <h5 class="modal-title">
+        {% if form.instance.pk %}수정하기{% else %}새 서브글 추가{% endif %}
+    </h5>
+    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+    <form hx-post="{% if form.instance.pk %}{% url 'basiccontent:subpost-update' form.instance.pk %}{% else %}{% url 'basiccontent:subpost-create' post_id %}{% endif %}"
+          hx-target="#subpost-list"
+          class="needs-validation"
+          novalidate>
+        {% csrf_token %}
+
+        <div class="mb-3">
+            <label class="form-label">Main 글</label>
+            {{ form.main_post|add_class:"form-select" }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">글 유형</label>
+            {{ form.post_type|add_class:"form-select" }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Sub 글 제목</label>
+            {{ form.title|add_class:"form-control" }}
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Sub 글 내용</label>
+            {{ form.description|add_class:"form-control" }}
+        </div>
+
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                취소
+            </button>
+            <button type="submit" class="btn btn-primary">
+                저장
+            </button>
+        </div>
+    </form>
+</div>

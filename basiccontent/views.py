@@ -92,7 +92,7 @@ class SubPostListView(ListView):
 
     def get_queryset(self):
         post_id = self.kwargs.get('post_id')
-        sub_posts = SubPost.objects.filter(main_post__id=post_id).select_related('main_post')
+        sub_posts = SubPost.objects.filter(main_post_id=post_id).select_related('main_post')
         return sub_posts
 
     def get_context_data(self, **kwargs):
@@ -101,6 +101,36 @@ class SubPostListView(ListView):
         return context
 
 
+class SubPostOptionCreateView(CreateView):
+    model = SubPost
+    form_class = SubPostForm
+    template_name = 'basiccontent/subpost/subpost_form.html'
+    context_object_name = 'sub_posts'
+
+    def get_initial(self):
+        initial = super().get_initial()
+        post_id = self.request.GET.get('post_id')
+        if post_id:
+            initial['post'] = SubPost.objects.filter(post_id=post_id)
+        return initial
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        if self.request.headers.get('HX-Request'):
+            post_options = SubPost.objects.all()
+            return render(self.request, 'basiccontent/subpost/subpost_list_partials.html', {'post_options': post_options})
+        return response
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['post_id'] = self.kwargs.get('post_id')
+        return context
+
+    def get_success_url(self):
+        if self.request.headers.get('HX-Request'):
+            return self.request.path
+        return super().get_success_url()
 
 ## Content CRUD Views
 class PostContentUpdateView(UpdateView):
