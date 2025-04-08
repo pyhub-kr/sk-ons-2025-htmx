@@ -80,9 +80,13 @@ class MainPostDetailView(ListView):
 
     def get_queryset(self):
         post_id = self.kwargs.get('pk')
-        posts = MainPost.objects.filter(id=post_id)
+        posts = MainPost.objects.filter(id=post_id).prefetch_related(
+            'sub_posts',
+            'sub_posts__postcontent_set',
+            'sub_posts__postcontent_set__content',
+            'sub_posts__postoptions_set'
+        )
         return posts
-
 
 ## SubPost CRUD Views
 class SubPostListView(ListView):
@@ -302,7 +306,8 @@ class PostOptionCreateView(CreateView):
         response = super().form_valid(form)
 
         if self.request.headers.get('HX-Request'):
-            post_options = PostOptions.objects.all()
+            subpost_id = self.kwargs.get('subpost_id')
+            post_options = PostOptions.objects.filter(post__in=[subpost_id]).prefetch_related('post').order_by('option_order')
             return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
         return response
 
@@ -327,7 +332,8 @@ class PostOptionUpdateView(UpdateView):
         response = super().form_valid(form)
 
         if self.request.headers.get('HX-Request'):
-            post_options = PostOptions.objects.all()
+            subpost_id = self.kwargs.get('subpost_id')
+            post_options = PostOptions.objects.filter(post__in=[subpost_id]).prefetch_related('post').order_by('option_order')
             return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
         return response
 
