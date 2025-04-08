@@ -109,16 +109,16 @@ class SubPostCreateView(CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        post_id = self.request.GET.get('post_id')
+        post_id = self.kwargs.get('post_id')  # URL에서 post_id 가져오기
         if post_id:
-            initial['post'] = SubPost.objects.filter(post_id=post_id)
+            initial['main_post'] = post_id  # main_post 필드에 post_id 설정
         return initial
 
     def form_valid(self, form):
         response = super().form_valid(form)
 
         if self.request.headers.get('HX-Request'):
-            sub_posts = SubPost.objects.all()
+            sub_posts = SubPost.objects.filter(main_post_id=self.kwargs.get('post_id')).select_related('main_post', 'post_type')
             return render(self.request, 'basiccontent/subpost/subpost_list_partials.html', {'sub_posts': sub_posts})
         return response
 
@@ -275,13 +275,14 @@ class PostOptionListView(ListView):
     context_object_name = 'post_options'
 
     def get_queryset(self):
-        post_id = self.kwargs.get('post_id')
-        post_options = PostOptions.objects.filter(post__in=[post_id]).prefetch_related('post').order_by('option_order')
+        subpost_id = self.kwargs.get('subpost_id')
+        post_options = PostOptions.objects.filter(post__in=[subpost_id]).prefetch_related('post').order_by('option_order')
         return post_options
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['post_id'] = self.kwargs.get('post_id')
+        context['subpost_id'] = self.kwargs.get('subpost_id')
+        context['subpost_first'] = SubPost.objects.filter(id=self.kwargs.get('subpost_id')).first()
         return context
 
 class PostOptionCreateView(CreateView):
@@ -292,9 +293,9 @@ class PostOptionCreateView(CreateView):
 
     def get_initial(self):
         initial = super().get_initial()
-        post_id = self.request.GET.get('post_id')
-        if post_id:
-            initial['post'] = SubPost.objects.filter(id=post_id)
+        subpost_id = self.kwargs.get('subpost_id')  # URL 경로 매개변수에서 가져옵니다
+        if subpost_id:
+            initial['post'] = [subpost_id]  # ManyToManyField에 대한 초기값은 리스트로 제공
         return initial
 
     def form_valid(self, form):
@@ -307,7 +308,7 @@ class PostOptionCreateView(CreateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['post_id'] = self.kwargs.get('post_id')
+        context['subpost_id'] = self.kwargs.get('subpost_id')
         return context
 
     def get_success_url(self):
@@ -341,11 +342,11 @@ class PostOptionDeleteView(DeleteView):
 
     def delete(self, request, *args, **kwargs):
         self.object = self.get_object()
+        subpost_id = self.object.post.first().id  # 삭제 전에 subpost_id 저장
         self.object.delete()
 
         if self.request.headers.get('HX-Request'):
-            post_options = PostOptions.objects.all()
+            post_options = PostOptions.objects.filter(post__in=[subpost_id]).order_by('option_order')
             return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
         return super().delete(request, *args, **kwargs)
-
 
