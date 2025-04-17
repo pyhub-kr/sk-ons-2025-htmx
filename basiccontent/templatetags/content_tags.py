@@ -22,3 +22,8 @@ def content_type(obj):
 @register.filter
 def get_filename(path):
     return path.split('/')[-1]
+
+@register.filter
+def get_item(dictionary, key):
+    """사전에서 키에 해당하는 값을 가져오는 템플릿 필터"""
+    return dictionary.get(key)

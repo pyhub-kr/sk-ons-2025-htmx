@@ -26,3 +26,18 @@
       별도 유저의 동작이 없는 경우 마지막 최종 form 제출 시 post/patch 되도록 구현되어 있습니다.
       그러나 이후 대규모 유저 데이터 처리 시, 동시에 post/patch가 발생할 경우 서버 부하가 발생할 우려가 있어,
       자원 사용을 최소화하며 가장 효율적으로 form submit을 처리할 수 있는 방법이 있을지 궁금합니다.
+
+## 프로젝트 설명
+1. **모델**
+   1. Text, Image, File, Content : GenericForeignKey를 활용하여 컨텐츠를 별도로 관리하는 모델
+   2. PostType, MainPost, SubPost : 게시글 내용 및 유형 관리
+   3. PostContent : 게시글과 컨텐츠를 연결하는 중간 모델
+   4. PostOptions : 객관식 보기와 같은 선택지를 관리하는 모델
+   5. UserAnswer : 유저가 작성한 답변을 관리하는 모델
+   6. MultiSubjectiveAnswers : 서술형 답변 중 1-1, 1-2, ... 등과 같이 1개의 SubPost에 여러개의 답변이 있을 때 저장하는 모델
+
+2. **Template**
+   1. post_list, form, detail : 게시글 목록, 작성, 수정 템플릿 (대주제)
+   2. post_content_form, content_forms folder : 게시글에 포함된 컨텐츠를 유저 선택에 따라 동적 렌더링
+   3. sub_post : 실제 게시글의 내용을 담을 템플릿 (질문 문항 등)
+   4. post_options : 객관식 보기와 같이 선택지를 렌더링 할 수 있는 템플릿

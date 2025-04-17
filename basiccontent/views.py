@@ -1,5 +1,7 @@
+from django.contrib import messages
+from django.db import transaction
 from django.db.models import Prefetch
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404
 from django.views.decorators.http import require_http_methods
 
@@ -356,3 +358,122 @@ class PostOptionDeleteView(DeleteView):
             return render(self.request, 'basiccontent/postoptions/post_option_list_partials.html', {'post_options': post_options})
         return super().delete(request, *args, **kwargs)
 
+
+## User Answer CRUD Views
+class UserAnswerListView(ListView):
+    model = SubPost
+    template_name = 'basiccontent/user_answer/user_answer_submit.html'
+    context_object_name = 'sub_posts'
+
+    def get_queryset(self):
+        # 메인 포스트 ID를 URL로부터 가져옴
+        main_post_id = self.kwargs.get('main_post_id')
+        # 만약 main_post_id가 없다면 모든 SubPost를 반환
+        if main_post_id:
+            return SubPost.objects.filter(main_post_id=main_post_id).order_by('id')
+        return SubPost.objects.all().order_by('main_post', 'id')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        main_post_id = self.kwargs.get('main_post_id')
+
+        if main_post_id:
+            context['main_post'] = get_object_or_404(MainPost, id=main_post_id)
+
+        # 사용자 정보 폼 추가
+        context['user_form'] = UserProfileForm(self.request.POST or None)
+
+        # 각 SubPost에 대한 UserAnswerForm 생성
+        context['answer_forms'] = {}
+        for sub_post in context['sub_posts']:
+            context['answer_forms'][sub_post.id] = UserAnswerForm(post=sub_post)
+
+            # PostOptions 정보 추가
+            post_options = PostOptions.objects.filter(post=sub_post).order_by('option_order')
+            context['answer_forms'][sub_post.id].options = post_options
+
+        return context
+
+
+class SubmitUserAnswerView(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        sub_post_id = request.POST.get('sub_post_id')
+        sub_post = get_object_or_404(SubPost, id=sub_post_id)
+
+        # 사용자 정보 확인 또는 생성
+        user_id = request.session.get('user_id')
+        if not user_id:
+            # 사용자 정보 폼 검증
+            user_form = UserProfileForm(request.POST)
+            if user_form.is_valid():
+                # 사용자 생성 또는 검색
+                username = user_form.cleaned_data['username']
+                phone_number = user_form.cleaned_data['phone_number']
+
+                try:
+                    user, created = User.objects.get_or_create(
+                        phone_number=phone_number,
+                        defaults={
+                            'username': username,
+                            'birthday': user_form.cleaned_data['birthday'],
+                            'gender': user_form.cleaned_data['gender']
+                        }
+                    )
+                    request.session['user_id'] = user.id
+                except Exception as e:
+                    return JsonResponse({'success': False, 'message': str(e)})
+            else:
+                return JsonResponse({'success': False, 'errors': user_form.errors})
+        else:
+            user = get_object_or_404(User, id=user_id)
+
+        # 답변 폼 검증
+        form = UserAnswerForm(request.POST, post=sub_post)
+        if form.is_valid():
+            # 기존 답변이 있는지 확인
+            user_answer, created = UserAnswer.objects.get_or_create(
+                user=user,
+                post=sub_post,
+                defaults={
+                    'answer': form.cleaned_data.get('answer'),
+                    'subjective_answer': form.cleaned_data.get('subjective_answer')
+                }
+            )
+
+            # 기존 답변이 있었다면 업데이트
+            if not created:
+                user_answer.answer = form.cleaned_data.get('answer')
+                user_answer.subjective_answer = form.cleaned_data.get('subjective_answer')
+                user_answer.save()
+
+            # 다중 주관식 답변 처리
+            if sub_post.post_type.post_type == '다중주관식':
+                formset = MultiSubjectiveAnswerFormSet(request.POST, instance=user_answer)
+                if formset.is_valid():
+                    formset.save()
+                else:
+                    return JsonResponse({'success': False, 'errors': formset.errors})
+
+            # 다음 문항이 있는지 확인
+            next_sub_post = SubPost.objects.filter(
+                main_post=sub_post.main_post,
+                id__gt=sub_post.id
+            ).order_by('id').first()
+
+            if next_sub_post:
+                # 다음 문항으로 이동
+                return JsonResponse({
+                    'success': True,
+                    'redirect': f'#question-{next_sub_post.id}'
+                })
+            else:
+                # 설문 완료
+                messages.success(request, '설문에 응답해주셔서 감사합니다.')
+                return JsonResponse({
+                    'success': True,
+                    'complete': True,
+                    'message': '설문이 완료되었습니다. 감사합니다.'
+                })
+        else:
+            return JsonResponse({'success': False, 'errors': form.errors})
