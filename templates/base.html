@@ -3,6 +3,7 @@
 {% bootstrap_css %}
 {% bootstrap_javascript %}
 {% load static %}
+{% load content_tags %}
 {% csrf_token %}
 
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
@@ -121,6 +122,60 @@
       border: none;
       box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
+
+    /* 상단 네비게이션 바 스타일 */
+    .navbar {
+        display: flex;
+        align-items: center;
+        justify-content: center; /* 중앙 정렬 */
+        padding: 0.5rem 2rem;
+        background-color: white;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        position: sticky;
+        top: 0;
+        z-index: 1000;
+    }
+
+    .navbar-container {
+        display: flex;
+        align-items: center;
+        width: 100%;
+        max-width: 1200px; /* 컨테이너 최대 너비 설정 */
+        margin: 0 auto; /* 가운데 정렬 */
+    }
+
+    .navbar-menu {
+        display: flex;
+        align-items: center;
+        justify-content: center; /* 네비게이션 메뉴 중앙 정렬 */
+        flex-grow: 1;
+    }
+
+    .navbar-item {
+        position: relative;
+        margin: 0 1.5rem; /* 양쪽에 여백 추가 */
+    }
+
+    .navbar-link {
+        display: flex;
+        align-items: center;
+        padding: 0.5rem;
+        font-size: 0.9rem;
+        color: #172B4D;
+    }
+
+    .navbar-link:hover {
+        color: #0052cc;
+    }
+
+    .navbar-link i {
+        margin-right: 0.5rem;
+    }
+
+    .navbar-item:hover .dropdown-menu {
+        display: block;
+    }
+
 </style>
 
 <!DOCTYPE html>
@@ -130,6 +185,22 @@
     <title>SKO</title>
 </head>
 <body>
+<nav class="navbar">
+    <div class="navbar-container">
+        <div class="navbar-menu">
+            <div class="navbar-item">
+                <a href="{% url 'basiccontent:all_answers' %}" class="navbar-link">
+                    <i class="fas fa-home"></i> 설문 응답하기
+                </a>
+            </div>
+            <div class="navbar-item">
+                <a href="{% url 'basiccontent:post-list' %}" class="navbar-link">
+                    <i class="fas fa-pen"></i> 설문 폼 만들기
+                </a>
+            </div>
+        </div>
+    </div>
+</nav>
 
 {% block content %}
 

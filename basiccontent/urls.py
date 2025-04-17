@@ -33,6 +33,14 @@ urlpatterns = [
     path('posts/option/<int:pk>/update/', views.PostOptionUpdateView.as_view(), name='option-update'),
     path('posts/option/<int:pk>/delete/', views.PostOptionDeleteView.as_view(), name='option-delete'),
 
+    ## User Answer CRUD
+    # 메인 포스트별 서브포스트 목록 및 설문지 표시
+    path('user/answer/<int:main_post_id>/', views.UserAnswerListView.as_view(), name='answer_list'),
+    # 모든 서브포스트 목록 표시 (메인포스트 구분 없이)
+    path('user/answer/', views.UserAnswerListView.as_view(), name='all_answers'),
+    # 사용자 답변 제출 처리
+    path('user/answer/submit/', views.SubmitUserAnswerView.as_view(), name='submit_user_answer'),
+
 ]
 
 

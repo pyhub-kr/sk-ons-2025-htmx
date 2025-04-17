@@ -1,0 +1,544 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load content_tags %}
+
+{% block title %}
+  {% if main_post %}{{ main_post.title }}{% else %}설문조사{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+  <div class="row">
+    <div class="col-md-8 mx-auto">
+      <!-- 메인 포스트 정보 -->
+      {% if main_post %}
+      <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+          <h1 class="card-title mb-3">{{ main_post.title }}</h1>
+          {% if main_post.description %}
+          <p class="card-text">{{ main_post.description }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- 사용자 정보 입력 -->
+      <div class="card mb-4 shadow-sm user-info-form">
+        <div class="card-header bg-primary text-white">
+          <h2 class="h5 mb-0">사용자 정보</h2>
+        </div>
+        <div class="card-body">
+          <form id="user-form">
+            {% csrf_token %}
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ user_form.username.id_for_label }}" class="form-label">이름</label>
+                {{ user_form.username }}
+                <div class="invalid-feedback" id="username-error"></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="{{ user_form.phone_number.id_for_label }}" class="form-label">전화번호</label>
+                <input type="text" name="phone_number" maxlength="20" id="{{ user_form.phone_number.id_for_label }}" class="form-control phone-number-input"
+                       placeholder="숫자만 입력하세요" data-mask="000-0000-0000">
+                <div class="invalid-feedback" id="phone-number-error"></div>
+              </div>
+            </div>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label for="{{ user_form.birthday.id_for_label }}" class="form-label">생년월일</label>
+                {{ user_form.birthday }}
+                <div class="invalid-feedback" id="birthday-error"></div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="{{ user_form.gender.id_for_label }}" class="form-label">성별</label>
+                {{ user_form.gender }}
+                <div class="invalid-feedback" id="gender-error"></div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- 메시지 알림 영역 -->
+      <div id="alerts-container"></div>
+
+      <!-- 설문 문항 리스트 -->
+      {% for sub_post in sub_posts %}
+        <div id="question-{{ sub_post.id }}" class="card mb-4 shadow-sm question-card">
+          <div class="card-header d-flex justify-content-between align-items-center {% if forloop.first %}bg-primary text-white{% else %}bg-light{% endif %}">
+            <h3 class="h5 mb-0">{{ forloop.counter }}. {{ sub_post.title }}{% if sub_post.necessary %} <span class="text-danger">*</span>{% endif %}</h3>
+            <span class="badge bg-secondary">{{ sub_post.post_type.post_type }}</span>
+          </div>
+          <div class="card-body">
+            {% if sub_post.description %}
+              <p class="card-text mb-4">{{ sub_post.description }}</p>
+            {% endif %}
+
+            <!-- 답변 폼 -->
+            <form
+              id="answer-form-{{ sub_post.id }}"
+              hx-post="{% url 'basiccontent:submit_user_answer' %}"
+              hx-swap="none"
+              hx-trigger="submit"
+              hx-indicator="#spinner-{{ sub_post.id }}"
+              class="answer-form"
+              data-necessary="{{ sub_post.necessary|lower }}"
+              data-post-type="{{ sub_post.post_type.post_type }}"
+              data-post-id="{{ sub_post.id }}"
+            >
+              {% csrf_token %}
+              <input type="hidden" name="sub_post_id" value="{{ sub_post.id }}">
+
+              <!-- 객관식 문항 -->
+              {% if sub_post.post_type.post_type == '객관식' %}
+                <div class="mb-3">
+                  {% with form=answer_forms|get_item:sub_post.id %}
+                  {% for option in form.options %}
+                    <div class="form-check mb-2">
+                      <input
+                        type="radio"
+                        name="answer"
+                        class="form-check-input"
+                        id="option-{{ sub_post.id }}-{{ option.id }}"
+                        value="{{ option.id }}"
+                      >
+                      <label class="form-check-label" for="option-{{ sub_post.id }}-{{ option.id }}">
+                        {{ option.description }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                  {% endwith %}
+                  <div class="invalid-feedback" id="answer-error-{{ sub_post.id }}"></div>
+                </div>
+
+              <!-- 주관식 문항 -->
+              {% elif sub_post.post_type.post_type == '주관식(단답)' %}
+                <div class="mb-3">
+                  <label for="subjective-{{ sub_post.id }}" class="form-label">답변</label>
+                  <textarea
+                    name="subjective_answer"
+                    id="subjective-{{ sub_post.id }}"
+                    class="form-control"
+                    rows="3"
+                  ></textarea>
+                  <div class="invalid-feedback" id="subjective-error-{{ sub_post.id }}"></div>
+                </div>
+
+              <!-- 혼합형 문항 (객관식 + 주관식) -->
+              {% elif sub_post.post_type.post_type == '혼합형' %}
+                <div class="mb-3">
+                  {% with form=answer_forms|get_item:sub_post.id %}
+                  {% for option in form.options %}
+                    <div class="form-check mb-2">
+                      <input
+                        type="radio"
+                        name="answer"
+                        class="form-check-input"
+                        id="option-{{ sub_post.id }}-{{ option.id }}"
+                        value="{{ option.id }}"
+                      >
+                      <label class="form-check-label" for="option-{{ sub_post.id }}-{{ option.id }}">
+                        {{ option.description }}
+                      </label>
+                    </div>
+                  {% endfor %}
+                  {% endwith %}
+                  <div class="invalid-feedback" id="answer-error-{{ sub_post.id }}"></div>
+                </div>
+                <div class="mb-3">
+                  <label for="subjective-{{ sub_post.id }}" class="form-label">추가 의견</label>
+                  <textarea
+                    name="subjective_answer"
+                    id="subjective-{{ sub_post.id }}"
+                    class="form-control"
+                    rows="3"
+                  ></textarea>
+                  <div class="invalid-feedback" id="subjective-error-{{ sub_post.id }}"></div>
+                </div>
+
+              <!-- 다중 주관식 문항 -->
+              {% elif sub_post.post_type.post_type == '주관식(다중서술형)' %}
+                <div id="multi-subjective-container-{{ sub_post.id }}">
+                  <input type="hidden" name="subjective_answer" value="">
+                  {% for i in "123"|make_list %}
+                    <div class="mb-3">
+                      <label for="multi-subjective-{{ sub_post.id }}-{{ forloop.counter }}" class="form-label">답변 {{ forloop.counter }}</label>
+                      <textarea
+                        name="multisubjective_set-{{ forloop.counter0 }}-answer_description"
+                        id="multi-subjective-{{ sub_post.id }}-{{ forloop.counter }}"
+                        class="form-control"
+                        rows="2"
+                      ></textarea>
+                      <input type="hidden" name="multisubjective_set-{{ forloop.counter0 }}-answer_number" value="{{ forloop.counter }}">
+                    </div>
+                  {% endfor %}
+                  <input type="hidden" name="multisubjective_set-TOTAL_FORMS" value="3">
+                  <input type="hidden" name="multisubjective_set-INITIAL_FORMS" value="0">
+                  <input type="hidden" name="multisubjective_set-MIN_NUM_FORMS" value="0">
+                  <input type="hidden" name="multisubjective_set-MAX_NUM_FORMS" value="10">
+                </div>
+              {% endif %}
+
+              <div class="d-flex justify-content-between align-items-center mt-4">
+                <div class="text-danger" id="form-errors-{{ sub_post.id }}"></div>
+                <button type="submit" class="btn btn-primary submit-btn">
+                  <span id="spinner-{{ sub_post.id }}" class="spinner-border spinner-border-sm d-none" role="status" aria-hidden="true"></span>
+                  {% if forloop.last %}설문 완료{% else %}다음 문항{% endif %}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      {% empty %}
+        <div class="alert alert-warning">
+          현재 등록된 설문 문항이 없습니다.
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+
+<!-- 설문 완료 모달 -->
+<div class="modal fade" id="surveyCompleteModal" tabindex="-1" aria-labelledby="surveyCompleteModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="surveyCompleteModalLabel">설문 완료</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p>설문에 응답해주셔서 감사합니다.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 오류 모달 -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="errorModalLabel">오류</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body" id="error-modal-body">
+        <p>입력 정보를 확인해주세요.</p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">확인</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 전화번호 입력 형식 처리
+    const phoneInputs = document.querySelectorAll('.phone-number-input');
+    phoneInputs.forEach(input => {
+      input.addEventListener('input', function(e) {
+        // 숫자만 남기기
+        let value = this.value.replace(/\D/g, '');
+
+        // 하이픈 추가
+        if (value.length > 3 && value.length <= 7) {
+          this.value = value.slice(0, 3) + '-' + value.slice(3);
+        } else if (value.length > 7) {
+          this.value = value.slice(0, 3) + '-' + value.slice(3, 7) + '-' + value.slice(7, 11);
+        } else {
+          this.value = value;
+        }
+      });
+    });
+
+    const questionCards = document.querySelectorAll('.question-card');
+    questionCards.forEach((card, index) => {
+      if (index > 0) {
+        card.classList.add('d-none');
+      }
+    });
+
+    // 설문 완료 시 필수 문항 검사
+    document.addEventListener('submit', function(event) {
+      const form = event.target;
+
+      // 마지막 문항인 경우 (설문 완료 버튼)
+      if (form.querySelector('button').textContent.trim() === '설문 완료') {
+        event.preventDefault();
+
+        // 사용자 정보 검사
+        const userForm = document.getElementById('user-form');
+        const username = userForm.querySelector('[name="username"]').value;
+        const phoneNumber = userForm.querySelector('[name="phone_number"]').value;
+        const birthday = userForm.querySelector('[name="birthday"]').value;
+        const gender = userForm.querySelector('[name="gender"]').value;
+
+        if (!username || !phoneNumber || !birthday || !gender) {
+          showErrorModal('사용자 정보를 모두 입력해주세요.');
+          return;
+        }
+
+        // 필수 응답 문항 검사
+        const necessaryForms = document.querySelectorAll('.answer-form[data-necessary="true"]');
+        let missingAnswers = [];
+
+        necessaryForms.forEach(form => {
+          const postId = form.getAttribute('data-post-id');
+          const postType = form.getAttribute('data-post-type');
+          let answered = false;
+
+          if (postType === '객관식' || postType === '혼합형') {
+            answered = form.querySelector('input[name="answer"]:checked') !== null;
+          } else if (postType === '주관식(단답)') {
+            answered = form.querySelector('textarea[name="subjective_answer"]').value.trim() !== '';
+          } else if (postType === '주관식(다중서술형)') {
+            // 하나 이상의 답변이 있는지 확인
+            const textareas = form.querySelectorAll('textarea');
+            for (let i = 0; i < textareas.length; i++) {
+              if (textareas[i].value.trim() !== '') {
+                answered = true;
+                break;
+              }
+            }
+          }
+
+          if (!answered) {
+            missingAnswers.push(document.querySelector(`#question-${postId} .card-header h3`).textContent.trim());
+          }
+        });
+
+        if (missingAnswers.length > 0) {
+          showErrorModal(`다음 필수 문항에 응답해주세요:<br><ul>${missingAnswers.map(item => `<li>${item}</li>`).join('')}</ul>`);
+          return;
+        }
+
+        // 모든 검사를 통과했으면 폼 제출
+        submitAllForms();
+      }
+    });
+
+    // 에러 모달 표시 함수
+    function showErrorModal(message) {
+      const errorModalBody = document.getElementById('error-modal-body');
+      errorModalBody.innerHTML = message;
+      const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+      errorModal.show();
+    }
+
+    // 모든 폼 제출 함수
+    function submitAllForms() {
+      const userForm = document.getElementById('user-form');
+      const userData = new FormData(userForm);
+
+      // 사용자 데이터 저장
+      fetch('{% url "basiccontent:submit_user_answer" %}', {
+        method: 'POST',
+        body: userData,
+        headers: {
+          'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+        }
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // 모든 응답 폼 제출
+          const answerForms = document.querySelectorAll('.answer-form');
+          let submittedForms = 0;
+
+          answerForms.forEach(form => {
+            const formData = new FormData(form);
+
+            // 사용자 ID 추가
+            formData.append('user_id', data.user_id);
+
+            fetch('{% url "basiccontent:submit_user_answer" %}', {
+              method: 'POST',
+              body: formData,
+              headers: {
+                'X-CSRFToken': document.querySelector('[name="csrfmiddlewaretoken"]').value
+              }
+            })
+            .then(response => response.json())
+            .then(responseData => {
+              submittedForms++;
+
+              // 모든 폼이 제출되면 완료 모달 표시
+              if (submittedForms === answerForms.length) {
+                const modal = new bootstrap.Modal(document.getElementById('surveyCompleteModal'));
+                modal.show();
+
+                // 알림 메시지 표시
+                const alertsContainer = document.getElementById('alerts-container');
+                alertsContainer.innerHTML = `
+                  <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    설문에 응답해주셔서 감사합니다.
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                  </div>
+                `;
+              }
+            })
+            .catch(error => {
+              console.error('Form submission error:', error);
+              showErrorModal('답변 제출 중 오류가 발생했습니다.');
+            });
+          });
+        } else {
+          // 사용자 정보 저장 실패
+          if (data.errors) {
+            Object.entries(data.errors).forEach(([field, errors]) => {
+              const errorElement = document.getElementById(`${field}-error`);
+              if (errorElement) {
+                errorElement.textContent = errors.join(', ');
+                errorElement.style.display = 'block';
+
+                // 폼 필드에 오류 클래스 추가
+                const fieldElement = document.querySelector(`[name="${field}"]`);
+                if (fieldElement) {
+                  fieldElement.classList.add('is-invalid');
+                }
+              }
+            });
+          }
+
+          showErrorModal('사용자 정보를 확인해주세요.');
+        }
+      })
+      .catch(error => {
+        console.error('User form submission error:', error);
+        showErrorModal('사용자 정보 제출 중 오류가 발생했습니다.');
+      });
+    }
+
+    // HTMX 요청 처리
+    htmx.on('htmx:beforeRequest', function(evt) {
+      const target = evt.detail.elt;
+      const formId = target.getAttribute('id');
+
+      // 사용자 정보 함께 전송
+      if (formId.startsWith('answer-form-')) {
+        const userForm = document.getElementById('user-form');
+        const userData = new FormData(userForm);
+
+        // FormData 객체에 사용자 데이터 추가
+        userData.forEach((value, key) => {
+          if (!evt.detail.requestConfig.parameters[key]) {
+            evt.detail.requestConfig.parameters[key] = value;
+          }
+        });
+      }
+    });
+
+    htmx.on('htmx:afterRequest', function(evt) {
+      const target = evt.detail.elt;
+      const formId = target.getAttribute('id');
+
+      try {
+        // 응답 데이터 가져오기
+        const response = JSON.parse(evt.detail.xhr.responseText);
+
+        if (response.success) {
+          // 사용자 정보 폼 숨기기
+          if (formId === 'user-form') {
+            document.querySelector('.user-info-form').classList.add('d-none');
+          }
+
+          // 현재 질문 숨기기
+          if (formId.startsWith('answer-form-')) {
+            const currentQuestionId = formId.replace('answer-form-', '');
+            document.querySelector(`#question-${currentQuestionId}`).classList.add('d-none');
+          }
+
+          // 다음 질문 표시 또는 완료 모달 표시
+          if (response.redirect) {
+            const nextElement = document.querySelector(response.redirect);
+            if (nextElement) {
+              nextElement.classList.remove('d-none');
+              nextElement.scrollIntoView({ behavior: 'smooth' });
+              const header = nextElement.querySelector('.card-header');
+              header.classList.add('bg-primary', 'text-white');
+            }
+          }
+
+          // 설문 완료 처리
+          if (response.complete) {
+            const modal = new bootstrap.Modal(document.getElementById('surveyCompleteModal'));
+            modal.show();
+
+            // 알림 메시지 표시
+            const alertsContainer = document.getElementById('alerts-container');
+            alertsContainer.innerHTML = `
+              <div class="alert alert-success alert-dismissible fade show" role="alert">
+                ${response.message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            `;
+          }
+        } else {
+          // 오류 처리
+          console.error('Form submission error:', response.errors);
+
+          // 오류 모달 표시
+          showErrorModal('입력 정보를 확인해주세요.');
+
+          // 오류 메시지 표시
+          if (response.errors) {
+            Object.entries(response.errors).forEach(([field, errors]) => {
+              const errorElement = document.getElementById(`${field}-error`);
+              if (errorElement) {
+                errorElement.textContent = errors.join(', ');
+                errorElement.style.display = 'block';
+
+                // 폼 필드에 오류 클래스 추가
+                const fieldElement = document.querySelector(`[name="${field}"]`);
+                if (fieldElement) {
+                  fieldElement.classList.add('is-invalid');
+                }
+              }
+            });
+          }
+
+          // 폼 오류 메시지 표시
+          if (formId.startsWith('answer-form-')) {
+            const formErrorsElement = document.getElementById(`form-errors-${formId.replace('answer-form-', '')}`);
+            if (formErrorsElement) {
+              formErrorsElement.textContent = '입력 정보를 확인해주세요.';
+            }
+          }
+
+          // htmx 요청 중단
+          evt.detail.shouldSwap = false;
+        }
+      } catch (error) {
+        console.error('Error parsing response:', error);
+        showErrorModal('응답 처리 중 오류가 발생했습니다.');
+      }
+    });
+
+    // 입력 필드 변경 시 오류 메시지 초기화
+    document.querySelectorAll('input, textarea, select').forEach(input => {
+      input.addEventListener('input', function() {
+        this.classList.remove('is-invalid');
+        const errorId = `${this.name}-error`;
+        const errorElement = document.getElementById(errorId);
+        if (errorElement) {
+          errorElement.textContent = '';
+          errorElement.style.display = 'none';
+        }
+      });
+    });
+
+    // 에러 모달 표시 함수
+    function showErrorModal(message) {
+      const errorModalBody = document.getElementById('error-modal-body');
+      errorModalBody.innerHTML = message;
+      const errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+      errorModal.show();
+    }
+  });
+</script>
+{% endblock %}
