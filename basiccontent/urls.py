@@ -39,7 +39,8 @@ urlpatterns = [
     # 모든 서브포스트 목록 표시 (메인포스트 구분 없이)
     path('user/answer/', views.UserAnswerListView.as_view(), name='all_answers'),
     # 사용자 답변 제출 처리
-    path('user/answer/submit/', views.SubmitUserAnswerView.as_view(), name='submit_user_answer'),
+    path('user/answer/submit/', views.UserAnswerListView.as_view(), name='submit_user_answer'),
+    path('user/answer/submit/<int:pk>/', views.UserAnswerListView.as_view(), name='submit_user_answer'),
 
 ]
 

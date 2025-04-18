@@ -366,30 +366,15 @@ class UserAnswerListView(ListView):
     context_object_name = 'sub_posts'
 
     def get_queryset(self):
-        # 메인 포스트 ID를 URL로부터 가져옴
         main_post_id = self.kwargs.get('main_post_id')
-        # 만약 main_post_id가 없다면 모든 SubPost를 반환
-        if main_post_id:
-            return SubPost.objects.filter(main_post_id=main_post_id).order_by('id')
-        return SubPost.objects.all().order_by('main_post', 'id')
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        main_post_id = self.kwargs.get('main_post_id')
-
-        if main_post_id:
-            context['main_post'] = get_object_or_404(MainPost, id=main_post_id)
-
-        # 사용자 정보 폼 추가
-        context['user_form'] = UserProfileForm(self.request.POST or None)
-
-        # 각 SubPost에 대한 UserAnswerForm 생성
-        context['answer_forms'] = {}
-        for sub_post in context['sub_posts']:
-            context['answer_forms'][sub_post.id] = UserAnswerForm(post=sub_post)
-
-            # PostOptions 정보 추가
-            post_options = PostOptions.objects.filter(post=sub_post).order_by('option_order')
-            context['answer_forms'][sub_post.id].options = post_options
-
-        return context
+        sub_posts = SubPost.objects.filter(main_post_id=main_post_id).select_related('main_post', 'post_type').prefetch_related(
+            Prefetch(
+                'postoptions_set',
+                queryset=PostOptions.objects.all().order_by('option_order')
+            ),
+            Prefetch(
+                'useranswer_set',
+                queryset=UserAnswer.objects.all().select_related('user').prefetch_related('multisubjectiveanswers_set')
+            )
+        )
+        return sub_posts

@@ -2,13 +2,13 @@
 {% bootstrap_css %}
 {% bootstrap_javascript %}
 {% load static %}
-{% load custom_filters %}
+{% load content_tags %}
 
 <link rel="stylesheet" href="{% static 'custom.css' %}">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 
 <style>
-    .exam-container {
+    .main-container {
         margin: 5rem auto 5rem auto;
         border: 2px solid #fbf408;
     }
@@ -16,40 +16,17 @@
 </style>
 
 {% block content %}
-<title>SKons Oel</title>
-{% if messages %}
-    <ul id="message-list">
-        {% for message in messages %}
-            <li class="message {{ message.tags }}">{{ message }}</li>
-        {% endfor %}
-    </ul>
 
-    <script>
-        setTimeout(function() {
-            var messages = document.getElementById('message-list');
-            if (messages) {
-                messages.style.display = 'none';
-            }
-        }, 5000);  // 5초 후 사라짐
-    </script>
-{% endif %}
+<div class="main-container">
+    <h1 class="post-title">{{ sub_posts.0.main_post.title }}</h1>
 
+    {% for sub_post in sub_posts %}
+        <div class="post-card" data-post-id="{{ sub_post.id }}">
+            <div class="post-number">post {{ forloop.counter }}</div>
+            <div class="post-text">{{ sub_post.title|linebreaksbr }}</div>
 
-
-<div class="exam-container">
-    <div class="timer-container" style="position: fixed; top: 40px; right: 20px; background-color: #fbf408; padding: 10px; border-radius: 5px; z-index: 1000; font-weight: bold;">
-        <div>남은 시간: <span id="remaining-time">00:00:00</span></div>
-    </div>
-
-    <h1 class="exam-title">{{ questions.0.apply_info.exam_phase_place.exam_phase.exam.domain_grade_detail.domain_grade.name }}-{{ questions.0.apply_info.exam_phase_place.exam_phase.exam.domain_grade_detail.name }}</h1>
-
-    {% for question in questions %}
-        <div class="question-card" data-question-id="{{ question.id }}">
-            <div class="question-number">Question {{ forloop.counter }}</div>
-            <div class="question-text">{{ question.user_question.question|linebreaksbr }} [ 배점 : {{ question.user_question.question_set.score }}점 ]</div>
-
-            {% if question.user_question.description_contents.exists %}
-                {% for content in question.user_question.description_contents.all %}
+            {% if sub_post.postcontent_set.exists %}
+                {% for content in sub_post.postcontent_set.all %}
                     {% if content.content.content_type.model == 'text' %}
                         <p>{{ content.content.item.text|linebreaksbr }}</p>
                     {% elif content.content.content_type.model == 'file' %}
@@ -58,69 +35,50 @@
                         </a>
                     {% elif content.content.content_type.model == 'image' %}
                         <div class="image-container">
-                            <img src="{{ content.content.item.image.url }}" alt="Question Image" class="content-image">
+                            <img src="{{ content.content.item.image.url }}" alt="post Image" class="content-image">
                         </div>
                     {% endif %}
                 {% endfor %}
             {% endif %}
 
-            {% if question.user_question.question_set.answer_type.name == '객관식' %}
-                <!-- Objective (Multiple Choice) Questions -->
-                <form hx-post="{% url 'oel:examiner-test-submit-answer' pk=question.id %}"
+            {% if sub_post.post_type.post_type == '객관식' %}
+                <form hx-post="{% url 'basiccontent:submit_user_answer' pk=sub_post.id %}"
                       hx-trigger="change"
                       hx-swap="none"
                       hx-ext="debug">
                     {% csrf_token %}
-                    {% for choice in question.user_question.answerchoices_set.all %}
+                    {% for choice in sub_post.useranswer_set.all %}
                         <div class="choice-container">
                             <input type="radio"
                                    id="choice_{{ choice.id }}"
                                    name="answer"
                                    value="{{ choice.id }}"
                                    class="choice-input"
-                                   {% if question.answer.id == choice.id %}checked{% endif %}>
+                                   {% if sub_post.answer.id == choice.id %}checked{% endif %}>
                             <label for="choice_{{ choice.id }}" class="choice-label">
                                 {{ choice.answer_description }}
                             </label>
-
-                            {% if choice.explanation_contents.exists %}
-                                <div class="choice-explanation">
-                                    {% for content in choice.explanation_contents.all %}
-                                        {% if content.content.content_type.model == 'text' %}
-                                            <p>{{ content.content.item.text|linebreaksbr }}</p>
-                                        {% elif content.content.content_type.model == 'file' %}
-                                            <a href="{{ content.content.item.file.url }}" class="file-download">
-                                                <i class="fas fa-download me-2"></i>Download File
-                                            </a>
-                                        {% elif content.content.content_type.model == 'image' %}
-                                            <div class="image-container">
-                                                <img src="{{ content.content.item.image.url }}" alt="Answer Image" class="content-image">
-                                            </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                </div>
-                            {% endif %}
                         </div>
                     {% endfor %}
                 </form>
-            {% elif question.user_question.question_set.answer_type.name == '주관식(다중단답)' %}
-                <div id="multi-subjective-container-{{ question.id }}">
-                    {% for multisubjective in question.multisubjectiveanswers_set.all %}
-                        <form hx-post="{% url 'oel:multi-subjective-answers' pk=multisubjective.id %}"
-                              hx-target="#multi-subjective-container-{{ question.id }}"
+            {% elif sub_post.post_type.post_type == '주관식(다중서술형)' %}
+                <div id="multi-subjective-container-{{ sub_post.id }}">
+                    {% for multisubjective in sub_post.multisubjectiveanswers_set.all %}
+                        <form hx-post="{% url 'basiccontent:multi-subjective-answers' pk=multisubjective.id %}"
+                              hx-target="#multi-subjective-container-{{ post.id }}"
                               hx-swap="innerHTML"
                               class="multi-answer-form">
                         {% csrf_token %}
                         <div id="save-status-{{ multisubjective.id }}"></div> <!-- 저장 상태 표시 영역 -->
                         <div class="mb-3">
-                            <label for="answer_{{ question.id }}_{{ multisubjective.answer_number }}" class="form-label">
+                            <label for="answer_{{ post.id }}_{{ multisubjective.answer_number }}" class="form-label">
                                 답안 ({{ multisubjective.answer_number }}) <span>*답안 번호에 맞게 입력해야 정답으로 인정됩니다.</span>
                             </label>
                             <div class="position-relative">
                                 <textarea
                                     class="form-control"
                                     name="answer_description"
-                                    id="answer_{{ question.id }}_{{ multisubjective.answer_number }}"
+                                    id="answer_{{ post.id }}_{{ multisubjective.answer_number }}"
                                     placeholder="이곳에 답변 ({{ multisubjective.answer_number }})을 입력하세요. 답안 번호에 맞게 입력해야 정답으로 인정됩니다."
                                     rows="3"
                                     hx-swap="innerHTML"
@@ -138,9 +96,8 @@
                 </div>
 
             {% else %}
-                <!-- Subjective (Essay/Short Answer) Questions -->
-                <form hx-post="{% url 'oel:examiner-test-submit-answer' pk=question.id %}"
-                      hx-target="#feedback-{{ question.id }}"
+                <form hx-post="{% url 'basiccontent:examiner-test-submit-answer' pk=post.id %}"
+                      hx-target="#feedback-{{ post.id }}"
                       hx-swap="innerHTML"
                       hx-ext="debug">
                     {% csrf_token %}
@@ -148,13 +105,13 @@
                         <textarea
                             class="answer-textarea"
                             name="user_subjective_answer"
-                            id="answer_{{ question.id }}"
+                            id="answer_{{ post.id }}"
                             placeholder="이곳에 답변을 입력하세요..."
                             hx-swap="innerHTML"
-                        >{{ question.user_subjective_answer|default:'' }}</textarea>
+                        >{{ post.user_subjective_answer|default:'' }}</textarea>
                     </div>
 
-                    <div class="answer-feedback" id="feedback-{{ question.id }}"></div>
+                    <div class="answer-feedback" id="feedback-{{ post.id }}"></div>
                     <button type="submit" class="btn btn-sm btn-secondary">임시저장</button>
                 </form>
             {% endif %}
@@ -166,564 +123,133 @@
 </div>
 {% endblock %}
 
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
+function validateAndSubmit() {
+    const posts = document.querySelectorAll('.post-card');
+    let allAnswered = true;
+    let emptyposts = [];
 
-        // 서버에서 전달받을 정보
-        const examStartTime = new Date("{{ exam_start_time|date:'Y-m-d H:i:s' }}").getTime();
-        const examEndTime = new Date("{{ exam_end_time|date:'Y-m-d H:i:s' }}").getTime();
-        const userStartTime = new Date("{{ user_start_time|date:'Y-m-d H:i:s' }}").getTime() || Date.now();
+    posts.forEach((post, index) => {
+        const postId = post.getAttribute('data-post-id');
+        const isMultiSubjective = post.querySelector('#multi-subjective-container-' + postId);
+        const textarea = post.querySelector('textarea');
+        const radioInputs = post.querySelectorAll('input[type="radio"]');
+        {#const form = post.querySelector('form');#}
 
-        // 자동 제출 실행 여부를 추적하는 변수
-        let isAutoSubmitExecuted = false;
-        // 5분 경고 표시 여부를 추적하는 변수
-        let isFiveMinuteWarningShown = false;
+        if (isMultiSubjective) {
+            // This is a multi-subjective post
+            const multiAnswerForms = post.querySelectorAll('.multi-answer-form');
+            let allMultiAnswered = true;
 
-        // 타이머 업데이트 함수
-        function updateTimer() {
-            const now = Date.now();
-            const remainingTime = examEndTime - now;
-
-            if (remainingTime <= 0) {
-                // 시간 종료 시 자동 제출
-                document.getElementById('remaining-time').textContent = "00:00:00";
-                // 자동 제출이 아직 실행되지 않았을 때만 실행
-                if (!isAutoSubmitExecuted) {
-                    isAutoSubmitExecuted = true;
-                    showWarning('시험 시간이 종료되었습니다. 자동으로 제출됩니다.');
-                    setTimeout(() => {
-                        validateAndSubmit(isAutoSubmitExecuted);
-                    }, 1000);
-                }
-                return;
-            }
-
-            // 시간 형식 변환
-            const hours = Math.floor(remainingTime / (1000 * 60 * 60));
-            const minutes = Math.floor((remainingTime % (1000 * 60 * 60)) / (1000 * 60));
-            const seconds = Math.floor((remainingTime % (1000 * 60)) / 1000);
-
-            document.getElementById('remaining-time').textContent =
-                `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-
-            // 5분 남았을 때 경고
-            if (remainingTime <= 5 * 60 * 1000 && !isFiveMinuteWarningShown) {
-                isFiveMinuteWarningShown = true;
-                showWarning('시험 종료까지 5분 남았습니다!');
-            }
-        }
-
-        // 1초마다 타이머 업데이트
-        updateTimer();
-        const timerInterval = setInterval(updateTimer, 1000);
-
-        {#// 시험 시작 시간 기록#}
-        {#fetch("{% url 'oel:record-exam-start' pk=questions.0.id %}", {#}
-        {#    method: 'POST',#}
-        {#    headers: {#}
-        {#        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,#}
-        {#        'Content-Type': 'application/json'#}
-        {#    }#}
-        {#});#}
-
-        const examContainer = document.querySelector('.exam-container');
-        let warningCount = 0;
-        let mouseOutsideTimer = null;
-        let isMouseOutside = false;
-
-        // 고정 경고 메시지 생성
-        const fixedWarningDiv = document.createElement('div');
-        fixedWarningDiv.classList.add('fixed-warning');
-        fixedWarningDiv.textContent = "주의 : 영역 밖으로 벗어나는 경우 부정행위로 감지되어 시험이 종료됩니다.";
-        fixedWarningDiv.style.position = 'fixed';
-        fixedWarningDiv.style.top = '0';
-        fixedWarningDiv.style.left = '0';
-        fixedWarningDiv.style.width = '100%';
-        fixedWarningDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
-        fixedWarningDiv.style.color = 'white';
-        fixedWarningDiv.style.padding = '10px';
-        fixedWarningDiv.style.textAlign = 'center';
-        fixedWarningDiv.style.zIndex = '9999';
-        document.body.appendChild(fixedWarningDiv);
-
-        // 동적 경고 메시지 생성
-        const warningDiv = document.createElement('div');
-        warningDiv.classList.add('warning-message');
-        warningDiv.style.display = 'none';
-        warningDiv.style.position = 'fixed';
-        warningDiv.style.top = '60px';
-        warningDiv.style.left = '50%';
-        warningDiv.style.transform = 'translateX(-50%)';
-        warningDiv.style.padding = '10px 20px';
-        warningDiv.style.backgroundColor = 'rgba(255, 0, 0, 0.8)';
-        warningDiv.style.color = 'white';
-        warningDiv.style.borderRadius = '5px';
-        warningDiv.style.zIndex = '9999';
-        document.body.appendChild(warningDiv);
-
-        // 마우스 이벤트 핸들러 등록
-        document.addEventListener('mouseleave', handleMouseLeave);
-        document.addEventListener('mouseenter', handleMouseEnter);
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('mousedown', handleMouseDown);
-
-        // 마우스가 영역을 벗어날 때
-        function handleMouseLeave(e) {
-            if (mouseOutsideTimer) {
-                clearTimeout(mouseOutsideTimer);
-            }
-
-            isMouseOutside = true;
-
-            // 3초 후에 경고 카운트 증가
-            mouseOutsideTimer = setTimeout(() => {
-                if (isMouseOutside) {
-                    warningCount++;
-                    showWarning(`주의: 마우스가 시험 영역을 벗어났습니다. (경고 ${warningCount}/3)`);
-
-                    // 3번의 경고 후 시험 종료
-                    if (warningCount >= 3) {
-                        if (!isAutoSubmitExecuted) {
-                            isAutoSubmitExecuted = true;
-                            showWarning('시험이 종료됩니다. 부정행위가 감지되었습니다.');
-                            setTimeout(() => {
-                                validateAndSubmit(isAutoSubmitExecuted, warningCount);
-                            }, 1000);
-                        }
-
-                    }
-                }
-            }, 3000);
-        }
-
-        // 마우스가 영역으로 돌아올 때
-        function handleMouseEnter(e) {
-            if (mouseOutsideTimer) {
-                clearTimeout(mouseOutsideTimer);
-            }
-
-            {#// 마우스가 영역으로 돌아왔을 때 경고를 표시하지만 카운트는 하지 않음#}
-            {#if(isMouseOutside) {#}
-            {#    showWarning(`마우스가 시험 영역으로 돌아왔습니다. 현재 경고 횟수: ${warningCount}/3`);#}
-
-
-            isMouseOutside = false;
-        }
-
-        // 마우스 움직임 처리
-        function handleMouseMove(e) {
-            const containerRect = examContainer.getBoundingClientRect();
-
-            // 마우스가 컨테이너 밖에 있는지 확인
-            if (
-                e.clientX < containerRect.left ||
-                e.clientX > containerRect.right ||
-                e.clientY < containerRect.top ||
-                e.clientY > containerRect.bottom
-            ) {
-                if (!isMouseOutside) {
-                    handleMouseLeave(e);
-                }
-            } else {
-                if (isMouseOutside) {
-                    handleMouseEnter(e);
-                }
-            }
-        }
-
-        // 마우스 클릭 처리
-        function handleMouseDown(e) {
-            const containerRect = examContainer.getBoundingClientRect();
-
-            // 마우스가 컨테이너 밖에서 클릭되면 경고
-            if (
-                e.clientX < containerRect.left ||
-                e.clientX > containerRect.right ||
-                e.clientY < containerRect.top ||
-                e.clientY > containerRect.bottom
-            ) {
-                e.preventDefault();
-                e.stopPropagation();
-
-                warningCount++;
-                showWarning(`주의: 시험 영역 밖에서 클릭할 수 없습니다. (경고 ${warningCount}/3)`);
-
-                if (warningCount >= 3) {
-                    if (!isAutoSubmitExecuted) {
-                        isAutoSubmitExecuted = true;
-                        showWarning('시험이 종료됩니다. 부정행위가 감지되었습니다.');
-                        setTimeout(() => {
-                            validateAndSubmit(isAutoSubmitExecuted, warningCount);
-                        }, 1000);
-                    }
-                }
-            }
-        }
-
-        // 경고 메시지 표시
-        function showWarning(message) {
-            warningDiv.textContent = message;
-            warningDiv.style.display = 'block';
-
-            // 3초 후 경고 숨기기
-            setTimeout(() => {
-                warningDiv.style.display = 'none';
-            }, 3000);
-        }
-
-        // 페이지 가시성 변경 감지 (다른 탭으로 이동이나 다른 창이 뜰 때)
-        document.addEventListener('visibilitychange', function() {
-            if (document.visibilityState === 'hidden') {
-                warningCount++;
-                setTimeout(() => {
-                    if (document.visibilityState === 'visible') {
-                        showWarning(`주의: 시험 페이지를 벗어났습니다. (경고 ${warningCount}/3)`);
-
-                        if (warningCount >= 3) {
-                            if (!isAutoSubmitExecuted) {
-                                isAutoSubmitExecuted = true;
-                                showWarning('시험이 종료됩니다. 부정행위가 감지되었습니다.');
-                                setTimeout(() => {
-                                    validateAndSubmit(isAutoSubmitExecuted, warningCount);
-                                }, 1000);
-                            }
-                        }
-                    }
-                }, 100);
-            }
-        });
-
-        // 포커스 변경 감지 (다른 창이 뜰 때)
-        window.addEventListener('blur', function() {
-            warningCount++;
-            showWarning(`주의: 다른 창이 활성화되었습니다. (경고 ${warningCount}/3)`);
-
-            if (warningCount >= 3) {
-                if (!isAutoSubmitExecuted) {
-                    isAutoSubmitExecuted = true;
-                    showWarning('시험이 종료됩니다. 부정행위가 감지되었습니다.');
-                    setTimeout(() => {
-                        validateAndSubmit(isAutoSubmitExecuted, warningCount);
-                    }, 1000);
-                }
-            }
-        });
-
-        // 키보드 단축키 비활성화 (Ctrl+C, Ctrl+V, F12 등)
-        document.addEventListener('keydown', function(e) {
-            if (
-                (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'p')) ||
-                (e.altKey && (e.key === 'Tab' || e.key === 'F4')) ||
-                e.key === 'F5' ||
-                e.key === 'PrintScreen' ||
-                e.key === 'Escape' || e.altKey || e.key === 'F4' || e.metaKey
-            ) {
-                e.preventDefault();
-                showWarning('단축키 사용이 제한되었습니다.');
-            }
-        });
-
-        // 우클릭 방지
-        document.addEventListener('contextmenu', function(e) {
-            e.preventDefault();
-            showWarning('우클릭이 제한되었습니다.');
-        });
-    });
-
-    function closeModal() {
-        // examFrame이 존재하는지 확인
-        const examFrame = document.getElementById('examFrame');
-        if (examFrame) {
-            // iframe src 초기화 (null 체크 후)
-            examFrame.src = '';
-        }
-
-        // modal이 존재하는지 확인
-        const modal = document.getElementById('examModal');
-        if (modal) {
-            // 모달 숨기기
-            modal.style.display = 'none';
-        }
-
-        // 전체 화면 종료
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.mozCancelFullScreen) { // Firefox
-            document.mozCancelFullScreen();
-        } else if (document.webkitExitFullscreen) { // Chrome, Safari and Opera
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { // Internet Explorer/Edge
-            document.msExitFullscreen();
-        }
-
-        // window.opener 존재 여부 확인
-        if (window.opener) {
-            try {
-                // exam_end 페이지로 이동
-                window.opener.location.href = "{% url 'oel:exam_end' %}";
-            } catch (error) {
-                console.error("opener location 변경 중 오류:", error);
-                // 대체 방법: 현재 창 닫기
-                window.close();
-            }
-        } else {
-            // opener가 없는 경우 대체 방법
-            console.warn("부모 창을 찾을 수 없습니다.");
-            // 원하는 페이지로 직접 이동하거나 다른 처리 추가
-            window.location.href = "{% url 'oel:exam_end' %}";
-        }
-    }
-
-    // 부정행위 처리 함수 수정
-    function disqualifyExam() {
-        // CSRF 토큰 가져오기
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-        // 첫 번째 문제 ID 가져오기
-        const firstQuestionId = document.querySelector('.question-card').getAttribute('data-question-id');
-
-        // 폼 데이터 생성
-        const formData = new FormData();
-        formData.append('question_id', firstQuestionId);
-        formData.append('csrfmiddlewaretoken', csrfToken);
-
-        // fetch API로 비동기 요청 전송
-        fetch("{% url 'oel:disqualify-exam' %}", {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (response.ok) {
-                if (window.opener) {
-                    try {
-                        window.opener.location.href = "{% url 'oel:exam_end_disqualify' %}";
-                    } catch (error) {
-                        console.log("opener location 오류");
-                        console.error("opener location 변경 중 오류:", error);
-                        window.location.href = "{% url 'oel:exam_end_disqualify' %}";
-                    }
-                    window.close();
+            multiAnswerForms.forEach(form => {
+                const multiTextarea = form.querySelector('textarea');
+                if (!multiTextarea.value.trim()) {
+                    allMultiAnswered = false;
                 } else {
-                    // opener가 없는 경우(iframe 등) 직접 이동
-                    console.log("opener 없음");
-                    window.location.href = "{% url 'oel:exam_end_disqualify' %}";
-                }
-            } else {
-                console.error('부적격 처리 중 오류가 발생했습니다.');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-        });
-    }
-
-    function validateAndSubmit(isAutoSubmitExecuted, warningCount) {
-        const questions = document.querySelectorAll('.question-card');
-        let allAnswered = true;
-        let emptyQuestions = [];
-
-        questions.forEach((question, index) => {
-            // Check if it's objective or subjective question
-            const questionId = question.getAttribute('data-question-id');
-            const isMultiSubjective = question.querySelector('#multi-subjective-container-' + questionId);
-            const textarea = question.querySelector('textarea');
-            const radioInputs = question.querySelectorAll('input[type="radio"]');
-            {#const form = question.querySelector('form');#}
-
-
-
-            if (isMultiSubjective) {
-                // This is a multi-subjective question
-                const multiAnswerForms = question.querySelectorAll('.multi-answer-form');
-                let allMultiAnswered = true;
-
-                multiAnswerForms.forEach(form => {
-                    const multiTextarea = form.querySelector('textarea');
-                    if (!multiTextarea.value.trim()) {
-                        allMultiAnswered = false;
-                    } else {
-                        // Trigger HTMX temporary save for each multi-answer
-                        multiTextarea.value = multiTextarea.value.trim();
-                        htmx.trigger(form, 'submit');
-                    }
-                });
-
-                if (!allMultiAnswered) {
-                    allAnswered = false;
-                    emptyQuestions.push(index + 1);
-                    if (!isAutoSubmitExecuted) {
-                        question.scrollIntoView({behavior: 'smooth', block: 'center'});
-                        question.style.border = '2px solid red';
-                        setTimeout(() => {
-                            question.style.border = '';
-                        }, 2000);
-                    }
-                }
-            } else if (textarea) {
-                // This is a subjective question
-                if (!textarea.value.trim()) {
-                    allAnswered = false;
-                    emptyQuestions.push(index + 1);
-                    if (!isAutoSubmitExecuted) {
-                        question.scrollIntoView({behavior: 'smooth', block: 'center'});
-                        question.style.border = '2px solid red';
-                        setTimeout(() => {
-                            question.style.border = '';
-                        }, 2000);
-                    }
-                } else {
-                    // Trigger HTMX temporary save for each question
-                    const form = question.querySelector('form');
-                    textarea.value = textarea.value.trim();
+                    // Trigger HTMX temporary save for each multi-answer
+                    multiTextarea.value = multiTextarea.value.trim();
                     htmx.trigger(form, 'submit');
                 }
-            } else if (radioInputs.length > 0) {
-                // This is an objective question
-                const answered = Array.from(radioInputs).some(input => input.checked);
-                if (!answered) {
-                    allAnswered = false;
-                    emptyQuestions.push(index + 1);
-                    if (!isAutoSubmitExecuted) {
-                        question.scrollIntoView({behavior: 'smooth', block: 'center'});
-                        question.style.border = '2px solid red';
-                        setTimeout(() => {
-                            question.style.border = '';
-                        }, 2000);
-                    }
-                }
+            });
+
+            if (!allMultiAnswered) {
+                allAnswered = false;
+                emptyposts.push(index + 1);
+
+                post.scrollIntoView({behavior: 'smooth', block: 'center'});
+                post.style.border = '2px solid red';
+                setTimeout(() => {
+                    post.style.border = '';
+                }, 2000);
+
             }
-        });
+        } else if (textarea) {
+            // This is a subjective post
+            if (!textarea.value.trim()) {
+                allAnswered = false;
+                emptyposts.push(index + 1);
 
-        if (!allAnswered && !isAutoSubmitExecuted) {
-            showInfo(`다음 문항에 답변을 입력해 주세요: ${emptyQuestions.join(', ')}`);
-            return;
-        }
+                post.scrollIntoView({behavior: 'smooth', block: 'center'});
+                post.style.border = '2px solid red';
+                setTimeout(() => {
+                    post.style.border = '';
+                }, 2000);
 
-        if (isAutoSubmitExecuted && warningCount >= 3) {
-            disqualifyExam();
-            return;
-        }
-
-        // Determine if we have any subjective questions
-        const hasSubjective = Array.from(questions).some(q => q.querySelector('textarea'));
-
-        // Create and submit the form
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = "{% url 'oel:result-grading' %}";
-
-        // Set action based on whether we have subjective questions or not
-        {#if (hasSubjective) {#}
-        {#    console.log('subjective: ', form)#}
-        {#    form.action = "{% url 'oel:result-grading-subjective' %}";#}
-        {#} else {#}
-        {#    console.log('객관식: ', form)#}
-        {#    form.action = "{% url 'oel:result-grading' %}";#}
-        {#}#}
-
-        // Add CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
-
-        // Add additional data
-        const domainGradeNameInput = document.createElement('input');
-        domainGradeNameInput.type = 'hidden';
-        domainGradeNameInput.name = 'domain_grade_detail_id';
-        domainGradeNameInput.value = "{{ questions.0.apply_info.exam_phase_place.exam_phase.exam.domain_grade_detail.id }}";
-        form.appendChild(domainGradeNameInput);
-
-        const examYearInput = document.createElement('input');
-        examYearInput.type = 'hidden';
-        examYearInput.name = 'exam_year';
-        examYearInput.value = "{{ questions.0.apply_info.exam_phase_place.exam_phase.exam.year }}";
-        form.appendChild(examYearInput);
-
-        const examRoundInput = document.createElement('input');
-        examRoundInput.type = 'hidden';
-        examRoundInput.name = 'exam_round';
-        examRoundInput.value = "{{ questions.0.apply_info.exam_phase_place.exam_phase.exam.title }}";
-        form.appendChild(examRoundInput);
-
-        // Submit the form
-        document.body.appendChild(form);
-
-        {#form.submit();#}
-        {#window.close();#}
-        {#window.opener.location.href = "{% url 'oel:exam_end' %}";#}
-
-        // 폼 데이터 생성
-        const formData = new FormData(form);
-
-        // fetch API를 사용하여 비동기 제출
-        fetch(form.action, {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => {
-            if (response.ok) {
-                if (window.opener) {
-                    try {
-                        window.opener.location.href = "{% url 'oel:exam_end' %}";
-                    } catch (error) {
-                        console.warn("부모 창 이동 실패", error);
-                    }
-                }
-                window.close();  // 새 창 닫기
             } else {
-                alert('제출에 실패했습니다. 다시 시도해주세요.');
+                // Trigger HTMX temporary save for each post
+                const form = post.querySelector('form');
+                textarea.value = textarea.value.trim();
+                htmx.trigger(form, 'submit');
             }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('제출 중 오류가 발생했습니다.');
-        });
-    }
+        } else if (radioInputs.length > 0) {
+            // This is an objective post
+            const answered = Array.from(radioInputs).some(input => input.checked);
+            if (!answered) {
+                allAnswered = false;
+                emptyposts.push(index + 1);
 
-    // 경고 메시지 표시 전역 함수
-    function showWarning(message) {
-        const warningDiv = document.querySelector('.warning-message');
-        if (warningDiv) {
-            warningDiv.textContent = message;
-            warningDiv.style.display = 'block';
+                post.scrollIntoView({behavior: 'smooth', block: 'center'});
+                post.style.border = '2px solid red';
+                setTimeout(() => {
+                    post.style.border = '';
+                }, 2000);
 
-            // 3초 후 경고 숨기기
-            setTimeout(() => {
-                warningDiv.style.display = 'none';
-            }, 3000);
+            }
         }
+    });
+
+    if (!allAnswered) {
+        showInfo(`다음 문항에 답변을 입력해 주세요: ${emptyposts.join(', ')}`);
+        return;
     }
 
-    function showInfo(message) {
-        // Create a dynamic info message if it doesn't exist
-        let infoDiv = document.querySelector('.info-message');
-        if (!infoDiv) {
-            infoDiv = document.createElement('div');
-            infoDiv.classList.add('info-message');
-            infoDiv.style.position = 'fixed';
-            infoDiv.style.top = '110px';
-            infoDiv.style.left = '50%';
-            infoDiv.style.transform = 'translateX(-50%)';
-            infoDiv.style.padding = '10px 20px';
-            infoDiv.style.backgroundColor = 'rgba(0, 123, 255, 0.8)';
-            infoDiv.style.color = 'white';
-            infoDiv.style.borderRadius = '5px';
-            infoDiv.style.zIndex = '9999';
-            document.body.appendChild(infoDiv);
+    const hasSubjective = Array.from(posts).some(q => q.querySelector('textarea'));
+
+    // Add CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const csrfInput = document.createElement('input');
+    csrfInput.type = 'hidden';
+    csrfInput.name = 'csrfmiddlewaretoken';
+    csrfInput.value = csrfToken;
+    form.appendChild(csrfInput);
+
+    // Add additional data
+    const domainGradeNameInput = document.createElement('input');
+    domainGradeNameInput.type = 'hidden';
+    domainGradeNameInput.name = 'domain_grade_detail_id';
+    domainGradeNameInput.value = "{{ posts.0.apply_info.exam_phase_place.exam_phase.exam.domain_grade_detail.id }}";
+    form.appendChild(domainGradeNameInput);
+
+    // Submit the form
+    document.body.appendChild(form);
+
+    // 폼 데이터 생성
+    const formData = new FormData(form);
+
+    // fetch API를 사용하여 비동기 제출
+    fetch(form.action, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => {
+        if (response.ok) {
+            if (window.opener) {
+                try {
+                    window.opener.location.href = "{% url 'basiccontent:exam_end' %}";
+                } catch (error) {
+                    console.warn("부모 창 이동 실패", error);
+                }
+            }
+            window.close();  // 새 창 닫기
+        } else {
+            alert('제출에 실패했습니다. 다시 시도해주세요.');
         }
-
-        infoDiv.textContent = message;
-        infoDiv.style.display = 'block';
-
-        // 3초 후 메시지 숨기기
-        setTimeout(() => {
-            infoDiv.style.display = 'none';
-        }, 3000);
-    }
-
-
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('제출 중 오류가 발생했습니다.');
+    });
+}
 
 </script>
