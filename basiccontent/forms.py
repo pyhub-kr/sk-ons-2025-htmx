@@ -1,3 +1,5 @@
+import re
+
 from django import forms
 from django.contrib.contenttypes.forms import generic_inlineformset_factory
 
@@ -109,7 +111,7 @@ class UserProfileForm(forms.ModelForm):
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={
                 'class': 'form-control phone-number-input',
-                'placeholder': '숫자만 입력하세요',
+                'placeholder': '000-0000-0000',
                 'data-mask': '000-0000-0000'
             }),
             'birthday': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
@@ -117,18 +119,11 @@ class UserProfileForm(forms.ModelForm):
         }
 
     def clean_phone_number(self):
-        """전화번호에 하이픈 자동 추가"""
-        phone_number = self.cleaned_data.get('phone_number', '')
-        # 숫자만 남기기
-        digits = ''.join(filter(str.isdigit, phone_number))
+        phone_number = self.cleaned_data.get('phone_number')
+        if not re.match(r'^\d{3}-\d{4}-\d{4}$', phone_number):
+            raise forms.ValidationError('전화번호는 000-0000-0000 형식이어야 합니다.')
+        return phone_number
 
-        # 적절한 길이인지 확인
-        if len(digits) != 11:
-            raise forms.ValidationError("전화번호는 11자리 숫자여야 합니다.")
-
-        # 하이픈 추가
-        formatted_number = f"{digits[:3]}-{digits[3:7]}-{digits[7:]}"
-        return formatted_number
 
 class UserAnswerForm(forms.ModelForm):
     """사용자 답변 폼"""
