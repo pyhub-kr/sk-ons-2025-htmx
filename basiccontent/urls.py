@@ -34,12 +34,17 @@ urlpatterns = [
     path('posts/option/<int:pk>/delete/', views.PostOptionDeleteView.as_view(), name='option-delete'),
 
     ## User Answer CRUD
+    # 유저 정보 입력
+    path('user/profile/<int:main_post_id>/', views.UserProfileCreateView.as_view(), name='user-profile'),
     # 메인 포스트별 서브포스트 목록 및 설문지 표시
     path('user/answer/<int:main_post_id>/', views.UserAnswerListView.as_view(), name='answer_list'),
-    # 모든 서브포스트 목록 표시 (메인포스트 구분 없이)
-    path('user/answer/', views.UserAnswerListView.as_view(), name='all_answers'),
+
     # 사용자 답변 제출 처리
-    path('user/answer/submit/', views.SubmitUserAnswerView.as_view(), name='submit_user_answer'),
+    path('user/answer/submit/', views.UserAnswerCreateView.as_view(), name='submit-user-answer'),
+    path('user/answer/submit/<int:pk>/', views.UserAnswerUpdateView.as_view(), name='update-user-answer'),
+    path('user/multisubj/submit/<int:pk>/', views.MultiSubjectiveUpdateView.as_view(), name='multi-subjective-answers'),
+
+    path('post/end/', views.EndTemplateView.as_view(), name='post-end'),
 
 ]
 

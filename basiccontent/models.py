@@ -6,14 +6,14 @@ from django.contrib.contenttypes.fields import GenericForeignKey
 
 class User(models.Model):
     """유저 모델 : 회원이 아닌, 설문 응답 시 유저가 직접 작성한다."""
-    username = models.CharField(max_length=255, unique=True)
+    username = models.CharField(max_length=255, unique=True, verbose_name="이름")
     phone_number = models.CharField(
     max_length=20,
     unique=True,
     validators=[RegexValidator(
         regex=r'^\d{3}-\d{4}-\d{4}$',
-        message="전화번호는 000-0000-0000 형식이어야 합니다.")])
-    birthday = models.DateField()
+        message="전화번호는 000-0000-0000 형식이어야 합니다.")], verbose_name="전화번호")
+    birthday = models.DateField(verbose_name="생년월일")
     gender = models.CharField(max_length=10,
     choices=[('M', '남'), ('F', '여')],
     verbose_name="성별")

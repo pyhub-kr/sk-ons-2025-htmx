@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_http_methods
 
 from basiccontent.models import *
@@ -359,121 +359,203 @@ class PostOptionDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
+
 ## User Answer CRUD Views
+class UserProfileCreateView(CreateView):
+    """사용자 정보를 입력받는 뷰"""
+    model = User
+    form_class = UserProfileForm
+    template_name = 'basiccontent/user_answer/user_profile_form.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['main_post_id'] = self.kwargs.get('main_post_id')
+        return context
+
+    def form_valid(self, form):
+        # 사용자 정보 저장
+        user = form.save()
+
+        # 세션에 사용자 ID 저장
+        self.request.session['user_id'] = user.id
+
+        main_post_id = self.kwargs.get('main_post_id')
+        print('main_post_id', main_post_id)
+
+        # 접근 로그 기록
+        AccessLog.objects.create(
+            user=user,
+            action='로그인',
+            ip_address=self.request.META.get('REMOTE_ADDR', '')
+        )
+
+        if main_post_id:
+            # 전체 페이지 리다이렉트가 필요함을 HTMX에 알려줌
+            response = redirect('basiccontent:answer_list', main_post_id=main_post_id)
+            response['HX-Redirect'] = response.url
+            return response
+        return HttpResponse("잘못된 접근입니다.", status=403)
+
+
 class UserAnswerListView(ListView):
     model = SubPost
     template_name = 'basiccontent/user_answer/user_answer_submit.html'
     context_object_name = 'sub_posts'
 
     def get_queryset(self):
-        # 메인 포스트 ID를 URL로부터 가져옴
         main_post_id = self.kwargs.get('main_post_id')
-        # 만약 main_post_id가 없다면 모든 SubPost를 반환
-        if main_post_id:
-            return SubPost.objects.filter(main_post_id=main_post_id).order_by('id')
-        return SubPost.objects.all().order_by('main_post', 'id')
+        sub_posts = SubPost.objects.filter(main_post_id=main_post_id).select_related('main_post', 'post_type').prefetch_related(
+            Prefetch(
+                'postoptions_set',
+                queryset=PostOptions.objects.all().order_by('option_order')
+            ),
+            Prefetch(
+                'useranswer_set',
+                queryset=UserAnswer.objects.all().select_related('user').prefetch_related('multisubjectiveanswers_set')
+            )
+        )
+        return sub_posts
 
     def get_context_data(self, **kwargs):
+        print('self.request.session', self.request.session)
         context = super().get_context_data(**kwargs)
-        main_post_id = self.kwargs.get('main_post_id')
 
-        if main_post_id:
-            context['main_post'] = get_object_or_404(MainPost, id=main_post_id)
+        # 세션에서 사용자 ID 가져오기
+        user_id = self.request.session.get('user_id')
 
-        # 사용자 정보 폼 추가
-        context['user_form'] = UserProfileForm(self.request.POST or None)
-
-        # 각 SubPost에 대한 UserAnswerForm 생성
-        context['answer_forms'] = {}
-        for sub_post in context['sub_posts']:
-            context['answer_forms'][sub_post.id] = UserAnswerForm(post=sub_post)
-
-            # PostOptions 정보 추가
-            post_options = PostOptions.objects.filter(post=sub_post).order_by('option_order')
-            context['answer_forms'][sub_post.id].options = post_options
-
-        return context
-
-
-class SubmitUserAnswerView(View):
-    @transaction.atomic
-    def post(self, request, *args, **kwargs):
-        sub_post_id = request.POST.get('sub_post_id')
-        sub_post = get_object_or_404(SubPost, id=sub_post_id)
-
-        # 사용자 정보 확인 또는 생성
-        user_id = request.session.get('user_id')
+        # 사용자가 없으면 사용자 정보 입력 페이지로 리다이렉트
         if not user_id:
-            # 사용자 정보 폼 검증
-            user_form = UserProfileForm(request.POST)
-            if user_form.is_valid():
-                # 사용자 생성 또는 검색
-                username = user_form.cleaned_data['username']
-                phone_number = user_form.cleaned_data['phone_number']
+            return redirect('basiccontent:user_profile_create')
 
-                try:
-                    user, created = User.objects.get_or_create(
-                        phone_number=phone_number,
-                        defaults={
-                            'username': username,
-                            'birthday': user_form.cleaned_data['birthday'],
-                            'gender': user_form.cleaned_data['gender']
-                        }
-                    )
-                    request.session['user_id'] = user.id
-                except Exception as e:
-                    return JsonResponse({'success': False, 'message': str(e)})
-            else:
-                return JsonResponse({'success': False, 'errors': user_form.errors})
-        else:
-            user = get_object_or_404(User, id=user_id)
+        # 사용자 객체 가져오기
+        user = get_object_or_404(User, id=user_id)
 
-        # 답변 폼 검증
-        form = UserAnswerForm(request.POST, post=sub_post)
-        if form.is_valid():
-            # 기존 답변이 있는지 확인
+        # 접근 로그 기록
+        AccessLog.objects.create(
+            user=user,
+            action='설문 접근',
+            ip_address=self.request.META.get('REMOTE_ADDR', '')
+        )
+
+        # 현재 사용자의 기존 답변 가져오기
+        for sub_post in context['sub_posts']:
+            # 사용자 답변 가져오기 (없으면 생성)
             user_answer, created = UserAnswer.objects.get_or_create(
                 user=user,
                 post=sub_post,
-                defaults={
-                    'answer': form.cleaned_data.get('answer'),
-                    'subjective_answer': form.cleaned_data.get('subjective_answer')
-                }
+                defaults={'subjective_answer': '', 'answer': None}
             )
 
-            # 기존 답변이 있었다면 업데이트
-            if not created:
-                user_answer.answer = form.cleaned_data.get('answer')
-                user_answer.subjective_answer = form.cleaned_data.get('subjective_answer')
-                user_answer.save()
+            # 주관식(다중서술형)인 경우 다중 답변 생성
+            if sub_post.post_type.post_type == '주관식(다중서술형)':
+                # 다중 답변이 없으면 3개 생성
+                multi_answers = MultiSubjectiveAnswers.objects.filter(user_answer=user_answer)
+                if not multi_answers.exists():
+                    for i in range(1, 4):
+                        MultiSubjectiveAnswers.objects.create(
+                            user_answer=user_answer,
+                            answer_number=i,
+                            answer_description=''
+                        )
 
-            # 다중 주관식 답변 처리
-            if sub_post.post_type.post_type == '다중주관식':
-                formset = MultiSubjectiveAnswerFormSet(request.POST, instance=user_answer)
-                if formset.is_valid():
-                    formset.save()
-                else:
-                    return JsonResponse({'success': False, 'errors': formset.errors})
+                # 다중 답변 가져오기
+                sub_post.multisubjectiveanswers_set = MultiSubjectiveAnswers.objects.filter(
+                    user_answer=user_answer
+                ).order_by('answer_number')
 
-            # 다음 문항이 있는지 확인
-            next_sub_post = SubPost.objects.filter(
-                main_post=sub_post.main_post,
-                id__gt=sub_post.id
-            ).order_by('id').first()
+            # 현재 사용자의 답변 저장
+            sub_post.user_answer = user_answer
 
-            if next_sub_post:
-                # 다음 문항으로 이동
-                return JsonResponse({
-                    'success': True,
-                    'redirect': f'#question-{next_sub_post.id}'
-                })
-            else:
-                # 설문 완료
-                messages.success(request, '설문에 응답해주셔서 감사합니다.')
-                return JsonResponse({
-                    'success': True,
-                    'complete': True,
-                    'message': '설문이 완료되었습니다. 감사합니다.'
-                })
-        else:
-            return JsonResponse({'success': False, 'errors': form.errors})
+        return context
+
+class UserAnswerCreateView(CreateView):
+    model = UserAnswer
+    fields = ['answer', 'subjective_answer']
+
+    def form_valid(self, form):
+        response = super().form_valid(form)
+
+        # HTMX 요청인 경우
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse(status=200, content='저장 완료')
+
+        return response
+
+class UserAnswerUpdateView(UpdateView):
+    model = UserAnswer
+    fields = ['answer', 'subjective_answer']
+
+    def get_object(self):
+        # 세션에서 사용자 ID 가져오기
+        print('self.request.session', self.request.session)
+        user_id = self.request.session.get('user_id')
+        if not user_id:
+            return None
+
+        # SubPost ID 가져오기
+        post_id = self.kwargs.get('pk')
+        post = get_object_or_404(SubPost, id=post_id)
+
+        # 사용자 답변 가져오기 (없으면 생성)
+        user_answer, created = UserAnswer.objects.get_or_create(
+            user_id=user_id,
+            post=post,
+            defaults={'subjective_answer': '', 'answer': None}
+        )
+
+        return user_answer
+
+    def form_valid(self, form):
+        # 폼 저장
+        response = super().form_valid(form)
+
+        # HTMX 요청인 경우
+        if self.request.headers.get('HX-Request'):
+            return HttpResponse(status=200, content='저장 완료')
+
+        return response
+
+
+class MultiSubjectiveAnswersView(CreateView):
+    model = MultiSubjectiveAnswers
+    fields = ['answer_number', 'answer_description']
+
+    def form_valid(self, form):
+        if self.request.headers.get('HX-Request'):
+            # HTMX 요청인 경우, 현재 폼의 HTML을 다시 반환
+            return render(self.request, 'basiccontent/user_answer/multi_subjective_answers_form.html')
+
+        return super().form_valid(form)
+
+
+class MultiSubjectiveUpdateView(UpdateView):
+    """다중 주관식 답변을 저장하는 뷰 (HTMX 호출용)"""
+    model = MultiSubjectiveAnswers
+    fields = ['answer_number', 'answer_description']
+    template_name = 'basiccontent/user_answer/multi_subjective_answers_form.html'
+
+    def form_valid(self, form):
+        # 폼 저장
+        self.object = form.save()
+
+        # HTMX 요청인 경우
+        if self.request.headers.get('HX-Request'):
+            # 저장 상태 메시지 반환
+            return HttpResponse('<div class="alert alert-success">저장 완료</div>')
+
+        return super().form_valid(form)
+
+
+# class EndTemplateView(TemplateView):
+#     template_name = 'basiccontent/end_template.html'
+
+
+class EndTemplateView(View):
+    """설문 완료 페이지를 보여주는 뷰"""
+
+    def get(self, request, *args, **kwargs):
+        # 세션 초기화
+        if 'user_id' in request.session:
+            del request.session['user_id']
+
+        return render(request, 'basiccontent/end_template.html')
