@@ -1,0 +1,27 @@
+<div id="save-status-{{ object.id }}" class="mt-2"></div>
+<form hx-post="{% url 'basiccontent:multi-subjective-answers' pk=object.id %}"
+      hx-target="#save-status-{{ object.id }}"
+      hx-swap="innerHTML"
+      class="multi-answer-form">
+    {% csrf_token %}
+    <div class="mb-3">
+        <label for="answer_{{ object.user_answer.post.id }}_{{ object.answer_number }}" class="form-label">
+            답안 ({{ object.answer_number }}) <span class="text-muted">*답안 번호에 맞게 입력해야 정답으로 인정됩니다.</span>
+        </label>
+        <div class="position-relative">
+            <textarea
+                class="form-control"
+                name="answer_description"
+                id="answer_{{ object.user_answer.post.id }}_{{ object.answer_number }}"
+                placeholder="이곳에 답변 ({{ object.answer_number }})을 입력하세요. 답안 번호에 맞게 입력해야 정답으로 인정됩니다."
+                rows="3"
+                hx-swap="innerHTML"
+            >{{ object.answer_description|default:'' }}</textarea>
+        </div>
+    </div>
+
+    <button type="submit"
+            class="btn btn-sm btn-secondary"
+            hx-target="#save-status-{{ object.id }}"
+            hx-swap="innerHTML">임시 저장</button>
+</form>

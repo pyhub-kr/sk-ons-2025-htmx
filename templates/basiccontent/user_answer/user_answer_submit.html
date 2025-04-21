@@ -8,9 +8,118 @@
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 
 <style>
-    .main-container {
-        margin: 5rem auto 5rem auto;
-        border: 2px solid #fbf408;
+    .post-container {
+        max-width: 90%;
+        margin: 5rem auto;  /* 상단-우측-하단-좌측 */
+        padding: 0 1rem;
+    }
+
+    .post-title {
+        color: #2c3e50;
+        margin-bottom: 3rem;
+        padding-bottom: 1rem;
+        border-bottom: 3px solid #3498db;
+    }
+
+    .post-description {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 2rem;
+    }
+
+    .post-card {
+        background-color: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        margin-left: 2rem;
+        margin-right: 2rem;
+    }
+
+    .post-number {
+        color: #3498db;
+        font-weight: bold;
+        margin-bottom: 1rem;
+    }
+
+    .post-text {
+        font-size: 1.1rem;
+        color: #2c3e50;
+        margin-bottom: 1.5rem;
+    }
+
+    .content-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 8px;
+        transition: transform 0.3s ease;
+        transform-origin: left top;
+    }
+
+    .image-container:hover {
+        z-index: 100; /* 호버된 컨테이너의 z-index를 높여 항상 위에 표시 */
+    }
+
+    .image-container:hover .content-image {
+        transform: scale(3);
+        transform-origin: left top;
+        position: relative;
+    }
+
+    .image-container {
+        width: 200px;
+        height: 200px;
+        margin: 1rem 0;
+        overflow: visible;
+        position: relative;
+        z-index: 1;
+    }
+
+    .file-download {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #3498db;
+        color: white;
+        text-decoration: none;
+        border-radius: 6px;
+        margin: 1rem 0;
+        transition: background-color 0.2s;
+    }
+
+    .file-download:hover {
+        background-color: #2980b9;
+        color: white;
+    }
+
+    /* 모달 배경을 하얀색으로 변경 */
+    .modal-backdrop {
+      background-color: white !important;
+      opacity: 1 !important;
+    }
+
+    /* 입력칸 스타일 수정 */
+    .form-control, .form-select {
+      background-color: #f8f9fa;
+      border: 1px solid #ced4da;
+      border-radius: 4px;
+      padding: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    /* 입력칸에 포커스 시 스타일 */
+    .form-control:focus, .form-select:focus {
+      border-color: #80bdff;
+      box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+      background-color: white;
+    }
+
+    /* 모달 콘텐츠 부분 스타일 강화 */
+    .modal-content {
+      border: none;
+      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
     }
 
 </style>
@@ -42,21 +151,20 @@
             {% endif %}
 
             {% if sub_post.post_type.post_type == '객관식' %}
-                <form hx-post="{% url 'basiccontent:submit_user_answer' pk=sub_post.id %}"
+                <form hx-post="{% url 'basiccontent:submit-user-answer' %}"
                       hx-trigger="change"
                       hx-swap="none"
                       hx-ext="debug">
                     {% csrf_token %}
-                    {% for choice in sub_post.useranswer_set.all %}
+                    {% for choice in sub_post.postoptions_set.all %}
                         <div class="choice-container">
                             <input type="radio"
                                    id="choice_{{ choice.id }}"
                                    name="answer"
                                    value="{{ choice.id }}"
-                                   class="choice-input"
-                                   {% if sub_post.answer.id == choice.id %}checked{% endif %}>
+                                   class="choice-input">
                             <label for="choice_{{ choice.id }}" class="choice-label">
-                                {{ choice.answer_description }}
+                                {{ choice.description }}
                             </label>
                         </div>
                     {% endfor %}
@@ -96,19 +204,19 @@
                 </div>
 
             {% else %}
-                <form hx-post="{% url 'basiccontent:examiner-test-submit-answer' pk=post.id %}"
+                <form hx-post="{% url 'basiccontent:submit-user-answer' %}"
                       hx-target="#feedback-{{ post.id }}"
                       hx-swap="innerHTML"
                       hx-ext="debug">
                     {% csrf_token %}
                     <div class="position-relative">
                         <textarea
-                            class="answer-textarea"
-                            name="user_subjective_answer"
+                            class="form-control"
+                            name="subjective_answer"
                             id="answer_{{ post.id }}"
                             placeholder="이곳에 답변을 입력하세요..."
                             hx-swap="innerHTML"
-                        >{{ post.user_subjective_answer|default:'' }}</textarea>
+                        >{{ sub_post.subjective_answer|default:'' }}</textarea>
                     </div>
 
                     <div class="answer-feedback" id="feedback-{{ post.id }}"></div>
@@ -236,7 +344,7 @@ function validateAndSubmit() {
         if (response.ok) {
             if (window.opener) {
                 try {
-                    window.opener.location.href = "{% url 'basiccontent:exam_end' %}";
+                    window.opener.location.href = "{% url 'basiccontent:post-end' %}";
                 } catch (error) {
                     console.warn("부모 창 이동 실패", error);
                 }

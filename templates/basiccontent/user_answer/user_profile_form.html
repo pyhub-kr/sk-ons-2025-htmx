@@ -1,0 +1,27 @@
+{% load bootstrap5 %}
+{% bootstrap_css %}
+{% bootstrap_javascript %}
+{% load static %}
+
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="mb-0">설문 참여를 위한 정보 입력</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" class="form" action="{% url 'basiccontent:user-profile' main_post_id %}">
+                        {% csrf_token %}
+                        {% bootstrap_form form %}
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                정보 저장 및 설문 시작
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

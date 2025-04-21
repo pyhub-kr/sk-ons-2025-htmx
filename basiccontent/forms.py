@@ -174,6 +174,6 @@ MultiSubjectiveAnswerFormSet = forms.inlineformset_factory(
     UserAnswer,
     MultiSubjectiveAnswers,
     form=MultiSubjectiveAnswerForm,
-    extra=3,  # 기본적으로 3개의 답변 입력 폼을 제공
+    extra=0,
     can_delete=False
 )
