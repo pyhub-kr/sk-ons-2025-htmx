@@ -374,6 +374,14 @@ class UserProfileCreateView(CreateView):
         return context
 
     def form_valid(self, form):
+        # privacy_agreement 필드는 모델에 없으므로 제거
+        privacy_agreement = form.cleaned_data.pop('privacy_agreement', None)
+
+        # 동의하지 않은 경우 폼 제출 거부
+        if not privacy_agreement:
+            form.add_error('privacy_agreement', '개인정보 수집 및 이용에 동의해야 설문에 참여할 수 있습니다.')
+            return self.form_invalid(form)
+
         # 사용자 정보 저장
         user = form.save()
 
@@ -381,7 +389,6 @@ class UserProfileCreateView(CreateView):
         self.request.session['user_id'] = user.id
 
         main_post_id = self.kwargs.get('main_post_id')
-        print('main_post_id', main_post_id)
 
         # 접근 로그 기록
         AccessLog.objects.create(

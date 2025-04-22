@@ -104,10 +104,17 @@ class PostOptionsForm(forms.ModelForm):
 
 class UserProfileForm(forms.ModelForm):
     """사용자 정보 입력 폼"""
+    # 개인정보 수집 및 이용 동의 필드 추가
+    privacy_agreement = forms.BooleanField(
+        required=True,
+        label='개인정보 수집 및 이용 동의',
+        error_messages={'required': '개인정보 수집 및 이용에 동의해야 설문에 참여할 수 있습니다.'},
+        widget=forms.RadioSelect(choices=[(True, '동의합니다'), (False, '동의하지 않습니다')])
+    )
 
     class Meta:
         model = User
-        fields = ['username', 'phone_number', 'birthday', 'gender']
+        fields = ['username', 'phone_number', 'birthday', 'gender', 'privacy_agreement']
         widgets = {
             'username': forms.TextInput(attrs={'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={
@@ -134,6 +141,12 @@ class UserProfileForm(forms.ModelForm):
             if User.objects.filter(username=username, phone_number=phone_number).exists():
                 raise ValidationError("이미 설문에 응답하셨습니다.")
         return cleaned_data
+
+    def clean_privacy_agreement(self):
+        agreement = self.cleaned_data.get('privacy_agreement')
+        if not agreement:
+            raise ValidationError('개인정보 수집 및 이용에 동의해야 설문에 참여할 수 있습니다.')
+        return agreement
 
 
 class UserAnswerForm(forms.ModelForm):
