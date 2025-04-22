@@ -1,32 +1,38 @@
 {% for post in posts %}
-<div class="card mb-3" id="post-{{ post.id }}">
-    <div class="card-body">
-        <div class="row">
-            <div class="col-md-8">
-                <a href="{% url 'basiccontent:subpost-list' post.id %}"><h7 class="card-title">글 제목 : {{ post.title }}</h7></a>
-                <p class="card-text mt-2">{{ post.description|linebreaks }}</p>
-            </div>
-            <div class="col-md-4">
-                <div class="d-flex justify-content-end h-100">
-                    <a href="{% url 'basiccontent:post-detail' post.id %}" class="btn btn-info mb-2 w-70">
-                        글 내용<br/>확인하기
-                    </a>
-                    <button
-                        class="btn btn-warning mb-2 w-70"
-                        hx-get="{% url 'basiccontent:post-update' post.id %}"
-                        hx-target="#form-dialog">
-                        수정
-                    </button>
-                    <button
-                        class="btn btn-danger mb-2 w-70"
-                        hx-delete="{% url 'basiccontent:post-delete' post.id %}"
-                        hx-target="#post-list"
-                        hx-confirm="정말 삭제하시겠습니까?">
-                        삭제
-                    </button>
+    <div class="card mb-3" id="post-{{ post.id }}">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <a href="{% url 'basiccontent:subpost-list' post.id %}"><h7 class="card-title">글 제목 : {{ post.title }}</h7></a>
+                    <p class="card-text mt-2">{{ post.description|linebreaks }}</p>
+                </div>
+                <div class="col-md-4">
+                    <div class="d-flex justify-content-end h-100">
+                        <a href="{% url 'basiccontent:post-detail' post.id %}" class="btn btn-info mb-2 w-70">
+                            글 내용<br/>확인하기
+                        </a>
+                        <button
+                            class="btn btn-warning mb-2 w-70"
+                            hx-get="{% url 'basiccontent:post-update' post.id %}"
+                            hx-target="#form-dialog">
+                            수정
+                        </button>
+                        <button
+                            class="btn btn-danger mb-2 w-70"
+                            hx-delete="{% url 'basiccontent:post-delete' post.id %}"
+                            hx-target="#post-list"
+                            hx-confirm="정말 삭제하시겠습니까?">
+                            삭제
+                        </button>
+                        <button
+                            class="btn btn-secondary mb-2 w-70"
+                            onclick="generateSurveyLink({{ post.id }})"
+                            data-post-id="{{ post.id }}">
+                            설문 응답하기
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-</div>
 {% endfor %}

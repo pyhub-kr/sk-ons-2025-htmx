@@ -3,7 +3,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
-from django.urls import reverse_lazy
+from django.urls import reverse_lazy, reverse
 from django.views.decorators.http import require_http_methods
 
 from basiccontent.models import *
@@ -552,3 +552,43 @@ class EndTemplateView(View):
             del request.session['user_id']
 
         return render(request, 'basiccontent/end_template.html')
+
+
+# 유저에게 설문 배포하기
+def generate_survey_link(request, post_id):
+    """암호화된 설문 링크 생성"""
+    # 기존 링크가 있으면 가져오고, 없으면 새로 생성
+    survey_link, created = SurveyLink.objects.get_or_create(
+        main_post_id=post_id,
+        is_used=False,
+        expires_at__gt=timezone.now(),
+        defaults={'main_post_id': post_id}
+    )
+
+    # 암호화된 URL 생성
+    survey_url = request.build_absolute_uri(
+        reverse('basiccontent:survey-redirect', kwargs={'uuid': survey_link.uuid})
+    )
+
+    return JsonResponse({'url': survey_url})
+
+
+def survey_redirect(request, uuid):
+    """암호화된 UUID로 접근 시 적절한 설문으로 리다이렉트"""
+    try:
+        survey_link = SurveyLink.objects.get(uuid=uuid)
+
+        # 링크 유효성 확인
+        if not survey_link.is_valid():
+            messages.error(request, "설문 링크가 만료되었거나 이미 사용되었습니다.")
+            return redirect('basiccontent:post-list')
+
+        # 링크를 사용됨으로 표시 (일회용으로 사용하려면 주석 해제)
+        # survey_link.mark_as_used()
+
+        # 적절한 프로필 페이지로 리다이렉트
+        return redirect('basiccontent:user-profile', main_post_id=survey_link.main_post_id)
+
+    except SurveyLink.DoesNotExist:
+        messages.error(request, "유효하지 않은 설문 링크입니다.")
+        return redirect('basiccontent:post-list')

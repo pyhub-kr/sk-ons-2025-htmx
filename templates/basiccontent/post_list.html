@@ -41,11 +41,17 @@
                                 hx-confirm="정말 삭제하시겠습니까?">
                                 삭제
                             </button>
+{#                            <button#}
+{#                                class="btn btn-secondary mb-2 w-70"#}
+{#                                hx-get="{% url 'basiccontent:user-profile' post.id %}"#}
+{#                                hx-push-url="true"#}
+{#                                hx-target="body">#}
+{#                                설문 응답하기#}
+{#                            </button>#}
                             <button
                                 class="btn btn-secondary mb-2 w-70"
-                                hx-get="{% url 'basiccontent:user-profile' post.id %}"
-                                hx-push-url="true"
-                                hx-target="body">
+                                onclick="generateSurveyLink({{ post.id }})"
+                                data-post-id="{{ post.id }}">
                                 설문 응답하기
                             </button>
                         </div>
@@ -66,11 +72,77 @@
     </div>
 </div>
 
+<!-- 암호화된 URL을 표시할 모달 -->
+<div class="modal fade" id="survey-link-modal" tabindex="-1" aria-labelledby="surveyLinkModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="surveyLinkModalLabel">설문 응답 링크</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>아래 링크를 통해 설문에 응답할 수 있습니다. 이 링크는 24시간 동안 유효합니다.</p>
+                <div class="input-group mb-3">
+                    <input type="text" class="form-control" id="survey-link-input" readonly>
+                    <button class="btn btn-outline-secondary" type="button" onclick="copySurveyLink()">복사</button>
+                </div>
+                <div class="d-grid gap-2">
+                    <a href="#" class="btn btn-primary" id="survey-link-button" target="_blank">링크로 이동</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal for form -->
+<div class="modal fade" id="form-dialog" tabindex="-1" aria-labelledby="modalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <!-- Form content will be loaded here -->
+        </div>
+    </div>
+</div>
+
 <!-- HTMX 초기화 스크립트 -->
 <script>
     // 모달 인스턴스 생성
     let formModal = new bootstrap.Modal(document.getElementById('form-dialog'));
-    console.log('formModal', formModal);
+    let surveyLinkModal = new bootstrap.Modal(document.getElementById('survey-link-modal'));
+
+    // 암호화된 설문 링크 생성
+    function generateSurveyLink(postId) {
+        fetch(`/basiccontent/surveys/generate-link/${postId}/`)
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('survey-link-input').value = data.url;
+                document.getElementById('survey-link-button').href = data.url;
+                surveyLinkModal.show();
+            })
+            .catch(error => {
+                console.error('Error generating survey link:', error);
+                alert('설문 링크 생성 중 오류가 발생했습니다.');
+            });
+    }
+
+    // 설문 링크 복사
+    function copySurveyLink() {
+        const linkInput = document.getElementById('survey-link-input');
+        linkInput.select();
+        document.execCommand('copy');
+
+        // 복사 성공 표시
+        const copyButton = document.querySelector('#survey-link-modal .btn-outline-secondary');
+        const originalText = copyButton.textContent;
+        copyButton.textContent = '복사됨!';
+        copyButton.classList.add('btn-success');
+        copyButton.classList.remove('btn-outline-secondary');
+
+        setTimeout(() => {
+            copyButton.textContent = originalText;
+            copyButton.classList.remove('btn-success');
+            copyButton.classList.add('btn-outline-secondary');
+        }, 2000);
+    }
 
     // HTMX 이벤트 리스너
     document.body.addEventListener('htmx:afterSwap', function(evt) {

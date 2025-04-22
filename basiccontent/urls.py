@@ -46,6 +46,11 @@ urlpatterns = [
 
     path('post/end/', views.EndTemplateView.as_view(), name='post-end'),
 
+    # 유저에게 설문 배포하기
+    # 암호화된 링크 생성 및 리다이렉트 URL
+    path('surveys/generate-link/<int:post_id>/', views.generate_survey_link, name='generate-survey-link'),
+    path('surveys/s/<uuid:uuid>/', views.survey_redirect, name='survey-redirect'),
+
 ]
 
 

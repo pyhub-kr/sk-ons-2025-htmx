@@ -1,7 +1,10 @@
-from django.core.validators import RegexValidator
 from django.db import models
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.core.validators import RegexValidator
+from django.utils import timezone
+from datetime import timedelta
+import uuid
 
 
 class User(models.Model):
@@ -165,3 +168,34 @@ class AccessLog(models.Model):
 
     class Meta:
         verbose_name = "유저 접근 기록"
+
+
+# 유저에게 설문을 배포하기 위한 모델
+class SurveyLink(models.Model):
+    """암호화된 설문 링크 모델"""
+    uuid = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    main_post = models.ForeignKey(MainPost, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+
+    def save(self, *args, **kwargs):
+        # 링크 생성 시 24시간 후 만료되도록 설정
+        if not self.id:
+            self.expires_at = timezone.now() + timedelta(hours=24)
+        super().save(*args, **kwargs)
+
+    def is_valid(self):
+        """링크가 유효한지 확인"""
+        return not self.is_used and timezone.now() < self.expires_at
+
+    def mark_as_used(self):
+        """링크를 사용됨으로 표시"""
+        self.is_used = True
+        self.save()
+
+    def __str__(self):
+        return f"Survey link for {self.main_post.title} ({self.uuid})"
+
+    class Meta:
+        verbose_name = "설문 링크"
