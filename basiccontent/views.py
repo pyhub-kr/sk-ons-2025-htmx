@@ -4,8 +4,10 @@ from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from django.urls import reverse_lazy, reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
 
+from basiccontent.decorators import prevent_resubmission
 from basiccontent.models import *
 from basiccontent.forms import *
 from django.contrib.contenttypes.models import ContentType
@@ -484,6 +486,11 @@ class UserAnswerListView(ListView):
     def get_success_url(self):
         return reverse_lazy('basiccontent:post-end')
 
+
+    @method_decorator(prevent_resubmission)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
+
 class UserAnswerUpdateView(UpdateView):
     model = UserAnswer
     fields = ['answer', 'subjective_answer']
@@ -507,8 +514,20 @@ class UserAnswerUpdateView(UpdateView):
         return user_answer
 
     def form_valid(self, form):
-        # 폼 저장
         response = super().form_valid(form)
+
+        # 최종 제출인 경우 User.is_completed를 True로 설정
+        if self.request.POST.get('final_submit') == 'true':
+            user_id = self.request.session.get('user_id')
+            if user_id:
+                User.objects.filter(id=user_id).update(is_completed=True)
+
+                # 접근 로그 기록
+                AccessLog.objects.create(
+                    user_id=user_id,
+                    action='설문 제출 완료',
+                    ip_address=self.request.META.get('REMOTE_ADDR', '')
+                )
 
         # HTMX 요청인 경우
         if self.request.headers.get('HX-Request'):
@@ -520,7 +539,12 @@ class UserAnswerUpdateView(UpdateView):
         # post = self.object.post
         # main_post_id = post.main_post_id
         # return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
-        return reverse_lazy('basiccontent:post-end')
+        if self.request.POST.get('final_submit') == 'true':
+            return reverse_lazy('basiccontent:post-end')
+
+        post = self.object.post
+        main_post_id = post.main_post_id
+        return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
 
 
 class MultiSubjectiveUpdateView(UpdateView):

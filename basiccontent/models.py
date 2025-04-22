@@ -18,6 +18,7 @@ class User(models.Model):
     gender = models.CharField(max_length=10,
     choices=[('M', '남'), ('F', '여')],
     verbose_name="성별")
+    is_completed = models.BooleanField(default=False, verbose_name="설문 완료 여부")
 
     def __str__(self):
         return self.username
