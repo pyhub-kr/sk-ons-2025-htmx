@@ -3,8 +3,11 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse_lazy, reverse
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
 
+from basiccontent.decorators import prevent_resubmission
 from basiccontent.models import *
 from basiccontent.forms import *
 from django.contrib.contenttypes.models import ContentType
@@ -373,6 +376,14 @@ class UserProfileCreateView(CreateView):
         return context
 
     def form_valid(self, form):
+        # privacy_agreement 필드는 모델에 없으므로 제거
+        privacy_agreement = form.cleaned_data.pop('privacy_agreement', None)
+
+        # 동의하지 않은 경우 폼 제출 거부
+        if not privacy_agreement:
+            form.add_error('privacy_agreement', '개인정보 수집 및 이용에 동의해야 설문에 참여할 수 있습니다.')
+            return self.form_invalid(form)
+
         # 사용자 정보 저장
         user = form.save()
 
@@ -380,7 +391,6 @@ class UserProfileCreateView(CreateView):
         self.request.session['user_id'] = user.id
 
         main_post_id = self.kwargs.get('main_post_id')
-        print('main_post_id', main_post_id)
 
         # 접근 로그 기록
         AccessLog.objects.create(
@@ -417,7 +427,6 @@ class UserAnswerListView(ListView):
         return sub_posts
 
     def get_context_data(self, **kwargs):
-        print('self.request.session', self.request.session)
         context = super().get_context_data(**kwargs)
 
         # 세션에서 사용자 ID 가져오기
@@ -425,7 +434,7 @@ class UserAnswerListView(ListView):
 
         # 사용자가 없으면 사용자 정보 입력 페이지로 리다이렉트
         if not user_id:
-            return redirect('basiccontent:user_profile_create')
+            return redirect('basiccontent:user-profile', main_post_id=self.kwargs.get('main_post_id'))
 
         # 사용자 객체 가져오기
         user = get_object_or_404(User, id=user_id)
@@ -466,28 +475,27 @@ class UserAnswerListView(ListView):
             # 현재 사용자의 답변 저장
             sub_post.user_answer = user_answer
 
+            sub_post.selected_answer_id = user_answer.answer.id if user_answer.answer else None
+            sub_post.subjective_answer_text = user_answer.subjective_answer
+
+            # 사용자 정보도 컨텍스트에 추가
+        context['user'] = user
+
         return context
 
-class UserAnswerCreateView(CreateView):
-    model = UserAnswer
-    fields = ['answer', 'subjective_answer']
+    def get_success_url(self):
+        return reverse_lazy('basiccontent:post-end')
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
 
-        # HTMX 요청인 경우
-        if self.request.headers.get('HX-Request'):
-            return HttpResponse(status=200, content='저장 완료')
-
-        return response
+    @method_decorator(prevent_resubmission)
+    def dispatch(self, *args, **kwargs):
+        return super().dispatch(*args, **kwargs)
 
 class UserAnswerUpdateView(UpdateView):
     model = UserAnswer
     fields = ['answer', 'subjective_answer']
 
     def get_object(self):
-        # 세션에서 사용자 ID 가져오기
-        print('self.request.session', self.request.session)
         user_id = self.request.session.get('user_id')
         if not user_id:
             return None
@@ -506,8 +514,20 @@ class UserAnswerUpdateView(UpdateView):
         return user_answer
 
     def form_valid(self, form):
-        # 폼 저장
         response = super().form_valid(form)
+
+        # 최종 제출인 경우 User.is_completed를 True로 설정
+        if self.request.POST.get('final_submit') == 'true':
+            user_id = self.request.session.get('user_id')
+            if user_id:
+                User.objects.filter(id=user_id).update(is_completed=True)
+
+                # 접근 로그 기록
+                AccessLog.objects.create(
+                    user_id=user_id,
+                    action='설문 제출 완료',
+                    ip_address=self.request.META.get('REMOTE_ADDR', '')
+                )
 
         # HTMX 요청인 경우
         if self.request.headers.get('HX-Request'):
@@ -515,17 +535,16 @@ class UserAnswerUpdateView(UpdateView):
 
         return response
 
+    def get_success_url(self):
+        # post = self.object.post
+        # main_post_id = post.main_post_id
+        # return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
+        if self.request.POST.get('final_submit') == 'true':
+            return reverse_lazy('basiccontent:post-end')
 
-class MultiSubjectiveAnswersView(CreateView):
-    model = MultiSubjectiveAnswers
-    fields = ['answer_number', 'answer_description']
-
-    def form_valid(self, form):
-        if self.request.headers.get('HX-Request'):
-            # HTMX 요청인 경우, 현재 폼의 HTML을 다시 반환
-            return render(self.request, 'basiccontent/user_answer/multi_subjective_answers_form.html')
-
-        return super().form_valid(form)
+        post = self.object.post
+        main_post_id = post.main_post_id
+        return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
 
 
 class MultiSubjectiveUpdateView(UpdateView):
@@ -540,10 +559,15 @@ class MultiSubjectiveUpdateView(UpdateView):
 
         # HTMX 요청인 경우
         if self.request.headers.get('HX-Request'):
-            # 저장 상태 메시지 반환
-            return HttpResponse('<div class="alert alert-success">저장 완료</div>')
+            return HttpResponse(status=200, content='저장 완료')
 
         return super().form_valid(form)
+
+    def get_success_url(self):
+        post = self.object.post
+        main_post_id = post.main_post_id
+        return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
+
 
 
 # class EndTemplateView(TemplateView):
@@ -559,3 +583,43 @@ class EndTemplateView(View):
             del request.session['user_id']
 
         return render(request, 'basiccontent/end_template.html')
+
+
+# 유저에게 설문 배포하기
+def generate_survey_link(request, post_id):
+    """암호화된 설문 링크 생성"""
+    # 기존 링크가 있으면 가져오고, 없으면 새로 생성
+    survey_link, created = SurveyLink.objects.get_or_create(
+        main_post_id=post_id,
+        is_used=False,
+        expires_at__gt=timezone.now(),
+        defaults={'main_post_id': post_id}
+    )
+
+    # 암호화된 URL 생성
+    survey_url = request.build_absolute_uri(
+        reverse('basiccontent:survey-redirect', kwargs={'uuid': survey_link.uuid})
+    )
+
+    return JsonResponse({'url': survey_url})
+
+
+def survey_redirect(request, uuid):
+    """암호화된 UUID로 접근 시 적절한 설문으로 리다이렉트"""
+    try:
+        survey_link = SurveyLink.objects.get(uuid=uuid)
+
+        # 링크 유효성 확인
+        if not survey_link.is_valid():
+            messages.error(request, "설문 링크가 만료되었거나 이미 사용되었습니다.")
+            return redirect('basiccontent:post-list')
+
+        # 링크를 사용됨으로 표시 (일회용으로 사용하려면 주석 해제)
+        # survey_link.mark_as_used()
+
+        # 적절한 프로필 페이지로 리다이렉트
+        return redirect('basiccontent:user-profile', main_post_id=survey_link.main_post_id)
+
+    except SurveyLink.DoesNotExist:
+        messages.error(request, "유효하지 않은 설문 링크입니다.")
+        return redirect('basiccontent:post-list')

@@ -40,11 +40,16 @@ urlpatterns = [
     path('user/answer/<int:main_post_id>/', views.UserAnswerListView.as_view(), name='answer_list'),
 
     # 사용자 답변 제출 처리
-    path('user/answer/submit/', views.UserAnswerCreateView.as_view(), name='submit-user-answer'),
-    path('user/answer/submit/<int:pk>/', views.UserAnswerUpdateView.as_view(), name='update-user-answer'),
+    path('user/answer/submit/', views.UserAnswerUpdateView.as_view(), name='submit-user-answer'),
+    path('user/answer/submit/<int:pk>/', views.UserAnswerUpdateView.as_view(), name='submit-user-answer'),
     path('user/multisubj/submit/<int:pk>/', views.MultiSubjectiveUpdateView.as_view(), name='multi-subjective-answers'),
 
     path('post/end/', views.EndTemplateView.as_view(), name='post-end'),
+
+    # 유저에게 설문 배포하기
+    # 암호화된 링크 생성 및 리다이렉트 URL
+    path('surveys/generate-link/<int:post_id>/', views.generate_survey_link, name='generate-survey-link'),
+    path('surveys/s/<uuid:uuid>/', views.survey_redirect, name='survey-redirect'),
 
 ]
 
