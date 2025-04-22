@@ -6,13 +6,11 @@ from django.utils import timezone
 from datetime import timedelta
 import uuid
 
-
 class User(models.Model):
     """유저 모델 : 회원이 아닌, 설문 응답 시 유저가 직접 작성한다."""
-    username = models.CharField(max_length=255, unique=True, verbose_name="이름")
+    username = models.CharField(max_length=255, verbose_name="이름")
     phone_number = models.CharField(
     max_length=20,
-    unique=True,
     validators=[RegexValidator(
         regex=r'^\d{3}-\d{4}-\d{4}$',
         message="전화번호는 000-0000-0000 형식이어야 합니다.")], verbose_name="전화번호")
@@ -26,6 +24,9 @@ class User(models.Model):
 
     class Meta:
         verbose_name = "유저"
+        constraints = [
+            models.UniqueConstraint(fields=['username', 'phone_number'], name='unique_user_phone')
+        ]
 
 
 class ItemBase(models.Model):

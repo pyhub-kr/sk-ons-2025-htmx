@@ -2,6 +2,7 @@ import re
 
 from django import forms
 from django.contrib.contenttypes.forms import generic_inlineformset_factory
+from django.core.exceptions import ValidationError
 
 from basiccontent.models import *
 from django.forms import BaseModelFormSet, HiddenInput, modelformset_factory, inlineformset_factory
@@ -123,6 +124,16 @@ class UserProfileForm(forms.ModelForm):
         if not re.match(r'^\d{3}-\d{4}-\d{4}$', phone_number):
             raise forms.ValidationError('전화번호는 000-0000-0000 형식이어야 합니다.')
         return phone_number
+
+    def clean(self):
+        cleaned_data = super().clean()
+        username = cleaned_data.get('username')
+        phone_number = cleaned_data.get('phone_number')
+
+        if username and phone_number:
+            if User.objects.filter(username=username, phone_number=phone_number).exists():
+                raise ValidationError("이미 설문에 응답하셨습니다.")
+        return cleaned_data
 
 
 class UserAnswerForm(forms.ModelForm):
