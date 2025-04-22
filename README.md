@@ -14,6 +14,7 @@
 2. **HTMX 사용 관련**
    1. 현재 HTMX 적용 시 view에서 form 유효성 검사 후 if self.request.headers.get('HX-Request'):를 통해 Header 검사 후 partials templates으로 응답하고 있는데,
       HTMX 동작에 대해 header를 읽어서 동작을 별도 구현하는 방식보다 더 효율적으로 제어할 수 있는 방법이 있는지 궁금합니다.
+   2. 폼 제출 시 js가 동작하는 코드에 대해서 htmx로 대체할 수 있는 방법이 있을지 궁금합니다.
 
 3. **동적 폼 생성 및 렌더링**
    1. django model formset/form factory 을 활용하여 post, contents, option 등 여러 유형의 모델을 동시에 생성하는 템플릿을 만들고자 하였으나,
