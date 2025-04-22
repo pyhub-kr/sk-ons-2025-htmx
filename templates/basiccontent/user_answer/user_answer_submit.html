@@ -4,14 +4,16 @@
 {% load static %}
 {% load content_tags %}
 
-<link rel="stylesheet" href="{% static 'custom.css' %}">
 <script src="https://unpkg.com/htmx.org@2.0.4"></script>
 
 <style>
-    .post-container {
+    .main-container {
         max-width: 90%;
-        margin: 5rem auto;  /* 상단-우측-하단-좌측 */
-        padding: 0 1rem;
+        margin: 3rem auto;
+        padding: 2rem 2rem;
+        background-color: #ffffff;
+        border-radius: 15px;
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.08);
     }
 
     .post-title {
@@ -19,13 +21,6 @@
         margin-bottom: 3rem;
         padding-bottom: 1rem;
         border-bottom: 3px solid #3498db;
-    }
-
-    .post-description {
-        background-color: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-        margin-bottom: 2rem;
     }
 
     .post-card {
@@ -94,12 +89,6 @@
         color: white;
     }
 
-    /* 모달 배경을 하얀색으로 변경 */
-    .modal-backdrop {
-      background-color: white !important;
-      opacity: 1 !important;
-    }
-
     /* 입력칸 스타일 수정 */
     .form-control, .form-select {
       background-color: #f8f9fa;
@@ -116,10 +105,11 @@
       background-color: white;
     }
 
-    /* 모달 콘텐츠 부분 스타일 강화 */
-    .modal-content {
-      border: none;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    .required-label {
+        color: #e74c3c;
+        font-size: 0.9rem;
+        margin-left: 0.5rem;
+        font-weight: 500;
     }
 
 </style>
@@ -130,8 +120,10 @@
     <h1 class="post-title">{{ sub_posts.0.main_post.title }}</h1>
 
     {% for sub_post in sub_posts %}
-        <div class="post-card" data-post-id="{{ sub_post.id }}">
-            <div class="post-number">post {{ forloop.counter }}</div>
+        <div class="post-card" data-post-id="{{ sub_post.id }}" data-necessary="{{ sub_post.necessary|lower }}">
+            <div class="post-number">문항 {{ forloop.counter }}{% if sub_post.necessary %}
+                <span class="required-label">*필수항목입니다.</span>
+                {% endif %}</div>
             <div class="post-text">{{ sub_post.title|linebreaksbr }}</div>
 
             {% if sub_post.postcontent_set.exists %}
@@ -151,7 +143,7 @@
             {% endif %}
 
             {% if sub_post.post_type.post_type == '객관식' %}
-                <form hx-post="{% url 'basiccontent:submit-user-answer' %}"
+                <form hx-post="{% url 'basiccontent:submit-user-answer' sub_post.id %}"
                       hx-trigger="change"
                       hx-swap="none"
                       hx-ext="debug">
@@ -162,7 +154,8 @@
                                    id="choice_{{ choice.id }}"
                                    name="answer"
                                    value="{{ choice.id }}"
-                                   class="choice-input">
+                                   class="choice-input"
+                                   {% if sub_post.user_answer.answer.id == choice.id %}checked{% endif %}>
                             <label for="choice_{{ choice.id }}" class="choice-label">
                                 {{ choice.description }}
                             </label>
@@ -171,15 +164,15 @@
                 </form>
             {% elif sub_post.post_type.post_type == '주관식(다중서술형)' %}
                 <div id="multi-subjective-container-{{ sub_post.id }}">
-                    {% for multisubjective in sub_post.multisubjectiveanswers_set.all %}
+                    {% for multisubjective in sub_post.multisubjectiveanswers_set %}
                         <form hx-post="{% url 'basiccontent:multi-subjective-answers' pk=multisubjective.id %}"
-                              hx-target="#multi-subjective-container-{{ post.id }}"
+                              hx-target="#feedback-{{ multisubjective.id }}"
                               hx-swap="innerHTML"
                               class="multi-answer-form">
                         {% csrf_token %}
                         <div id="save-status-{{ multisubjective.id }}"></div> <!-- 저장 상태 표시 영역 -->
                         <div class="mb-3">
-                            <label for="answer_{{ post.id }}_{{ multisubjective.answer_number }}" class="form-label">
+                            <label for="answer_{{ sub_post.id }}_{{ multisubjective.answer_number }}" class="form-label">
                                 답안 ({{ multisubjective.answer_number }}) <span>*답안 번호에 맞게 입력해야 정답으로 인정됩니다.</span>
                             </label>
                             <div class="position-relative">
@@ -195,17 +188,15 @@
                             </div>
                         </div>
 
-                        <button type="submit"
-                                class="btn btn-sm btn-secondary"
-                                hx-target="#save-status-{{ multisubjective.id }}"
-                                hx-swap="innerHTML">임시 저장</button>
+                        <div class="answer-feedback" id="feedback-{{ multisubjective.id }}"></div>
+                        <button type="submit" class="btn btn-sm btn-secondary">임시 저장</button>
                         </form>
                     {% endfor %}
                 </div>
 
             {% else %}
-                <form hx-post="{% url 'basiccontent:submit-user-answer' %}"
-                      hx-target="#feedback-{{ post.id }}"
+                <form hx-post="{% url 'basiccontent:submit-user-answer' sub_post.id %}"
+                      hx-target="#feedback-{{ sub_post.id }}"
                       hx-swap="innerHTML"
                       hx-ext="debug">
                     {% csrf_token %}
@@ -213,26 +204,32 @@
                         <textarea
                             class="form-control"
                             name="subjective_answer"
-                            id="answer_{{ post.id }}"
+                            id="answer_{{ sub_post.id }}"
                             placeholder="이곳에 답변을 입력하세요..."
                             hx-swap="innerHTML"
-                        >{{ sub_post.subjective_answer|default:'' }}</textarea>
+                        >{{ sub_post.user_answer.subjective_answer|default:'' }}</textarea>
                     </div>
 
-                    <div class="answer-feedback" id="feedback-{{ post.id }}"></div>
+                    <div class="answer-feedback" id="feedback-{{ sub_post.id }}"></div>
                     <button type="submit" class="btn btn-sm btn-secondary">임시저장</button>
                 </form>
             {% endif %}
         </div>
     {% endfor %}
 
-    <button type="submit" class="btn btn-primary" onclick="validateAndSubmit()" style="margin-bottom: 5rem;">제출하기</button>
-    <br/>
+    <div class="submit-btn-container">
+        <button type="button" class="btn btn-primary submit-btn" id="submit-all-btn">제출하기</button>
+    </div>
 </div>
 {% endblock %}
 
 
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // 제출하기 버튼에 이벤트 리스너 추가
+    document.getElementById('submit-all-btn').addEventListener('click', validateAndSubmit);
+});
+
 function validateAndSubmit() {
     const posts = document.querySelectorAll('.post-card');
     let allAnswered = true;
@@ -240,13 +237,18 @@ function validateAndSubmit() {
 
     posts.forEach((post, index) => {
         const postId = post.getAttribute('data-post-id');
+        const isNecessary = post.getAttribute('data-necessary') === 'true';
+
+        // 필수 항목이 아니면 검증 건너뛰기
+        if (!isNecessary) {
+            return;
+        }
+
         const isMultiSubjective = post.querySelector('#multi-subjective-container-' + postId);
         const textarea = post.querySelector('textarea');
         const radioInputs = post.querySelectorAll('input[type="radio"]');
-        {#const form = post.querySelector('form');#}
 
         if (isMultiSubjective) {
-            // This is a multi-subjective post
             const multiAnswerForms = post.querySelectorAll('.multi-answer-form');
             let allMultiAnswered = true;
 
@@ -255,7 +257,6 @@ function validateAndSubmit() {
                 if (!multiTextarea.value.trim()) {
                     allMultiAnswered = false;
                 } else {
-                    // Trigger HTMX temporary save for each multi-answer
                     multiTextarea.value = multiTextarea.value.trim();
                     htmx.trigger(form, 'submit');
                 }
@@ -312,52 +313,43 @@ function validateAndSubmit() {
         return;
     }
 
-    const hasSubjective = Array.from(posts).some(q => q.querySelector('textarea'));
+    submitAllForms();
 
-    // Add CSRF token
+}
+
+function submitAllForms() {
+    // CSRF 토큰 가져오기
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // 폼 생성
+    const finalForm = document.createElement('form');
+    finalForm.method = 'POST';
+    finalForm.action = "{% url 'basiccontent:submit-user-answer' sub_posts.0.id %}";
+
+    // CSRF 토큰 추가
     const csrfInput = document.createElement('input');
     csrfInput.type = 'hidden';
     csrfInput.name = 'csrfmiddlewaretoken';
     csrfInput.value = csrfToken;
-    form.appendChild(csrfInput);
+    finalForm.appendChild(csrfInput);
 
-    // Add additional data
-    const domainGradeNameInput = document.createElement('input');
-    domainGradeNameInput.type = 'hidden';
-    domainGradeNameInput.name = 'domain_grade_detail_id';
-    domainGradeNameInput.value = "{{ posts.0.apply_info.exam_phase_place.exam_phase.exam.domain_grade_detail.id }}";
-    form.appendChild(domainGradeNameInput);
+    // 최종 제출 플래그 추가
+    const finalSubmitFlag = document.createElement('input');
+    finalSubmitFlag.type = 'hidden';
+    finalSubmitFlag.name = 'final_submit';
+    finalSubmitFlag.value = 'true';
+    finalForm.appendChild(finalSubmitFlag);
 
-    // Submit the form
-    document.body.appendChild(form);
+    // 폼을 DOM에 추가하고 제출
+    document.body.appendChild(finalForm);
 
-    // 폼 데이터 생성
-    const formData = new FormData(form);
+    // 제출 버튼 비활성화 및 로딩 상태 표시
+    const submitBtn = document.getElementById('submit-all-btn');
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> 제출 중...';
 
-    // fetch API를 사용하여 비동기 제출
-    fetch(form.action, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-        if (response.ok) {
-            if (window.opener) {
-                try {
-                    window.opener.location.href = "{% url 'basiccontent:post-end' %}";
-                } catch (error) {
-                    console.warn("부모 창 이동 실패", error);
-                }
-            }
-            window.close();  // 새 창 닫기
-        } else {
-            alert('제출에 실패했습니다. 다시 시도해주세요.');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('제출 중 오류가 발생했습니다.');
-    });
+    // 폼 제출
+    finalForm.submit();
 }
 
 </script>

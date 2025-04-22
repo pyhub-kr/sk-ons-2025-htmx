@@ -3,6 +3,7 @@ from django.db import transaction
 from django.db.models import Prefetch
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from django.urls import reverse_lazy
 from django.views.decorators.http import require_http_methods
 
 from basiccontent.models import *
@@ -417,7 +418,6 @@ class UserAnswerListView(ListView):
         return sub_posts
 
     def get_context_data(self, **kwargs):
-        print('self.request.session', self.request.session)
         context = super().get_context_data(**kwargs)
 
         # 세션에서 사용자 ID 가져오기
@@ -425,7 +425,7 @@ class UserAnswerListView(ListView):
 
         # 사용자가 없으면 사용자 정보 입력 페이지로 리다이렉트
         if not user_id:
-            return redirect('basiccontent:user_profile_create')
+            return redirect('basiccontent:user-profile', main_post_id=self.kwargs.get('main_post_id'))
 
         # 사용자 객체 가져오기
         user = get_object_or_404(User, id=user_id)
@@ -466,28 +466,22 @@ class UserAnswerListView(ListView):
             # 현재 사용자의 답변 저장
             sub_post.user_answer = user_answer
 
+            sub_post.selected_answer_id = user_answer.answer.id if user_answer.answer else None
+            sub_post.subjective_answer_text = user_answer.subjective_answer
+
+            # 사용자 정보도 컨텍스트에 추가
+        context['user'] = user
+
         return context
 
-class UserAnswerCreateView(CreateView):
-    model = UserAnswer
-    fields = ['answer', 'subjective_answer']
-
-    def form_valid(self, form):
-        response = super().form_valid(form)
-
-        # HTMX 요청인 경우
-        if self.request.headers.get('HX-Request'):
-            return HttpResponse(status=200, content='저장 완료')
-
-        return response
+    def get_success_url(self):
+        return reverse_lazy('basiccontent:post-end')
 
 class UserAnswerUpdateView(UpdateView):
     model = UserAnswer
     fields = ['answer', 'subjective_answer']
 
     def get_object(self):
-        # 세션에서 사용자 ID 가져오기
-        print('self.request.session', self.request.session)
         user_id = self.request.session.get('user_id')
         if not user_id:
             return None
@@ -515,17 +509,11 @@ class UserAnswerUpdateView(UpdateView):
 
         return response
 
-
-class MultiSubjectiveAnswersView(CreateView):
-    model = MultiSubjectiveAnswers
-    fields = ['answer_number', 'answer_description']
-
-    def form_valid(self, form):
-        if self.request.headers.get('HX-Request'):
-            # HTMX 요청인 경우, 현재 폼의 HTML을 다시 반환
-            return render(self.request, 'basiccontent/user_answer/multi_subjective_answers_form.html')
-
-        return super().form_valid(form)
+    def get_success_url(self):
+        # post = self.object.post
+        # main_post_id = post.main_post_id
+        # return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
+        return reverse_lazy('basiccontent:post-end')
 
 
 class MultiSubjectiveUpdateView(UpdateView):
@@ -540,10 +528,15 @@ class MultiSubjectiveUpdateView(UpdateView):
 
         # HTMX 요청인 경우
         if self.request.headers.get('HX-Request'):
-            # 저장 상태 메시지 반환
-            return HttpResponse('<div class="alert alert-success">저장 완료</div>')
+            return HttpResponse(status=200, content='저장 완료')
 
         return super().form_valid(form)
+
+    def get_success_url(self):
+        post = self.object.post
+        main_post_id = post.main_post_id
+        return reverse_lazy('basiccontent:answer_list', kwargs={'main_post_id': main_post_id})
+
 
 
 # class EndTemplateView(TemplateView):

@@ -40,8 +40,8 @@ urlpatterns = [
     path('user/answer/<int:main_post_id>/', views.UserAnswerListView.as_view(), name='answer_list'),
 
     # 사용자 답변 제출 처리
-    path('user/answer/submit/', views.UserAnswerCreateView.as_view(), name='submit-user-answer'),
-    path('user/answer/submit/<int:pk>/', views.UserAnswerUpdateView.as_view(), name='update-user-answer'),
+    path('user/answer/submit/', views.UserAnswerUpdateView.as_view(), name='submit-user-answer'),
+    path('user/answer/submit/<int:pk>/', views.UserAnswerUpdateView.as_view(), name='submit-user-answer'),
     path('user/multisubj/submit/<int:pk>/', views.MultiSubjectiveUpdateView.as_view(), name='multi-subjective-answers'),
 
     path('post/end/', views.EndTemplateView.as_view(), name='post-end'),
