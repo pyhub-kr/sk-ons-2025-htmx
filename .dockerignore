@@ -1,13 +1,10 @@
 .venv
 .idea
-db.sqlite3
 .gitignore
 .git
 *.pyc
 __pycache__
 *.pyo
 *.pyd
-*.db
-*.sqlite3
 *.log
 
