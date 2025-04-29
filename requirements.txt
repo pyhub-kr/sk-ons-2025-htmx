@@ -1,1 +1,1 @@
-djangodjango-crispy-formsdjango-allauthdjango-environdjango-cors-headersdj_rest_authdjango-htmxdjango-template-partialsdjango-bootstrap-v5django-widget-tweaksPillow
+djangodjango-crispy-formsdjango-allauthdjango-environdjango-cors-headersdj_rest_authdjango-htmxdjango-template-partialsdjango-bootstrap-v5django-widget-tweaksPillowgunicorn
