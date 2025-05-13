@@ -1,0 +1,55 @@
+{% extends 'djforms/base.html' %}
+
+{% block title %}내 폼 목록 - DJForms{% endblock %}
+
+{% block content %}
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1>내 폼 목록</h1>
+        <a href="{% url 'djforms:form_template_new' %}" class="btn btn-primary">
+            <i class="bi bi-plus-lg"></i> 새 폼 만들기
+        </a>
+    </div>
+
+    {% if formtemplate_list %}
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for formtemplate in formtemplate_list %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ formtemplate.title }}</h5>
+                            <p class="card-text text-muted">{{ formtemplate.description|truncatewords:30 }}</p>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <small class="text-muted">
+                                    생성일: {{ formtemplate.created|date:"Y-m-d" }}
+                                </small>
+                                <span class="badge {% if formtemplate.is_published %}bg-success{% else %}bg-secondary{% endif %}">
+                        {{ formtemplate.is_published|yesno:"공개,비공개" }}
+                    </span>
+                            </div>
+                        </div>
+                        <div class="card-footer bg-transparent">
+                            <div class="btn-group w-100">
+                                <a href="{% url 'djforms:form_template_edit' formtemplate.pk %}"
+                                   class="btn btn-outline-primary">
+                                    편집
+                                </a>
+                                <a href="{% url 'djforms:form_response_new' formtemplate.pk %}"
+                                   class="btn btn-outline-success" target="_blank">
+                                    미리보기
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="text-center py-5">
+            <h3 class="text-muted">아직 생성된 폼이 없습니다.</h3>
+            <p class="text-muted">새 폼을 만들어보세요!</p>
+            <a href="{% url 'djforms:form_template_new' %}" class="btn btn-primary">
+                새 폼 만들기
+            </a>
+        </div>
+    {% endif %}
+{% endblock %}

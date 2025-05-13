@@ -1,0 +1,34 @@
+{% load django_bootstrap5 %}
+
+<div class="card shadow-sm mb-3" draggable="true" x-data
+    x-on:dragstart="$store.drag.draggedItem = $el; $el.classList.add('dragging')"
+    x-on:dragend="$el.classList.remove('dragging')" x-on:dragover.prevent="$store.drag.draggedOverItem = $el"
+    data-index="{{ forloop.counter0 }}" :class="{ 'border-primary': $store.drag.draggedOverItem === $el }">
+    <div class="card-header small py-2 d-flex justify-content-between align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-grip-vertical text-muted" style="cursor: move;"></i>
+            {% if field_type.icon %}<i class="{{ field_type.icon }}"></i>{% endif %}
+            {{ field_type.label }}
+        </div>
+        <div class="d-flex gap-2">
+            {% comment %}
+            <button type="button" class="btn btn-sm" disabled>
+                <i class="bi bi-files"></i>
+            </button>
+            {% endcomment %}
+            {% with delete_url=form_template_field.get_delete_url %}
+            {# https://htmx.org/examples/delete-row/ #}
+            <button type="button" class="btn btn-sm" {# hx-confirm="정말 삭제하시겠습니까?" #} hx-delete="{{ delete_url }}"
+                hx-params="none" {# 외부 form 데이터들이 함께 전송되는 것을 막기 #} hx-target="closest .card" hx-swap="outerHTML">
+                <i class="bi bi-trash"></i>
+            </button>
+            {% endwith %}
+        </div>
+    </div>
+    <div class="card-body p-3">
+        {% bootstrap_form_errors form %}
+        {% block wrap %}
+        <div class="alert alert-warning">wrap block 재정의가 필요합니다.</div>
+        {% endblock %}
+    </div>
+</div>

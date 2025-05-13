@@ -1,0 +1,9 @@
+{% extends "djforms/fields/wrap.html" %}
+{% load django_bootstrap5 %}
+
+{% block wrap %}
+    <div class="alert alert-danger">
+        <i class="bi bi-exclamation-circle-fill"></i>
+        djforms/fields/{{ field_type.type }}.html 템플릿을 생성해주세요.
+    </div>
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "djforms/fields/wrap.html" %}
+
+{% load django_bootstrap5 %}
+
+{% block wrap %}
+    {% bootstrap_field form.question show_label=False %}
+    {% bootstrap_field form.description show_label=False %}
+
+    <script type="application/json">["옵션 1", "옵션 2"]</script>
+    {# JSON 직렬화된 문자열을 다시 JSON 직렬화 #}
+    {{ form.choices.value|json_script }}
+
+    <div x-data="{
+        newChoice: '',
+        choices: (() => {
+            const defaultJsonString = $el.previousElementSibling.previousElementSibling.textContent;
+
+            const jsonString = $el.previousElementSibling.textContent;
+            try {
+                let jsonObj = JSON.parse(jsonString || defaultJsonString) || defaultJsonString;
+                if ( typeof jsonObj === 'string' ) {
+                    jsonObj = JSON.parse(jsonObj);
+                }
+                return jsonObj;
+            } catch (e) {
+                console.error('choices parse error', e);
+                return [];
+            }
+        })(),
+        serializeChoices() {
+            return JSON.stringify(this.choices);
+        },
+        addChoiceAndFocus() {
+            if (this.newChoice.trim() !== '') {
+                this.choices.push(this.newChoice.trim());
+                this.$nextTick(() => {
+                    const inputs = this.$root.querySelectorAll('.choice-input');
+                    const lastInput = inputs[inputs.length - 1];
+                    if (lastInput) {
+                        lastInput.focus();
+                        lastInput.select();
+                    }
+                });
+                this.newChoice = '';
+            }
+        },
+        removeChoice(idx) {
+            this.choices.splice(idx, 1);
+        },
+        focusNext(idx) {
+            this.$nextTick(() => {
+                const inputs = this.$root.querySelectorAll('.choice-input');
+                const nextInput = inputs[idx + 1];
+                if (nextInput) {
+                    nextInput.focus();
+                    nextInput.select();
+                }
+            });
+        },
+        addEmptyChoice() {
+            const newIndex = this.choices.length + 1;
+            this.choices.push(`옵션 ${newIndex}`);
+            this.$nextTick(() => {
+                const inputs = this.$root.querySelectorAll('.choice-input');
+                const lastInput = inputs[inputs.length - 1];
+                if (lastInput) {
+                    lastInput.focus();
+                    lastInput.select();
+                }
+            });
+        }
+    }" x-init="$watch('choices', value => $refs.choicesInput.value = serializeChoices())" class="w-100">
+        <template x-for="(choice, idx) in choices" :key="idx">
+            <div class="form-check d-flex align-items-center mb-2">
+                {% if field_type.type == "checkbox" %}
+                    <input class="form-check-input me-2" type="checkbox" disabled/>
+                {% elif field_type.type == "select" %}
+                    <span class="me-2" style="width: 1em; display: inline-block; text-align: right; color: #555;" x-text="idx + 1"></span>
+                {% else %}
+                    <input class="form-check-input me-2" type="radio" disabled/>
+                {% endif %}
+                <input type="text" class="form-control form-control-sm me-2 choice-input" x-model="choices[idx]"
+                       @keydown.enter.prevent="if(idx === choices.length-1) { addEmptyChoice(); } else { focusNext(idx); }"
+                       @focus="$event.target.select()" style="max-width: 200px;"/>
+                <button type="button" class="btn btn-link btn-sm text-danger p-0 ms-auto" @click="removeChoice(idx)">
+                    &#10005;
+                </button>
+            </div>
+        </template>
+        {# 새 옵션 입력 #}
+        <div class="form-check d-flex align-items-center mb-2">
+            {% if field_type.type == "checkbox" %}
+                <input class="form-check-input me-2" type="checkbox" disabled/>
+            {% elif field_type.type == "select" %}
+                <span class="me-2" style="width: 1em; display: inline-block; text-align: right; color: #555;" x-text="idx + 1"></span>
+            {% else %}
+                <input class="form-check-input me-2" type="radio" disabled/>
+            {% endif %}
+            <input type="text" class="form-control form-control-sm me-2" placeholder="옵션 추가 또는 '기타' 추가"
+                   x-model="newChoice"
+                   @keydown.enter.prevent="addChoiceAndFocus()" @click="addEmptyChoice()" style="max-width: 200px"/>
+        </div>
+        {# 직렬화된 값 hidden input #}
+        <input type="hidden" name="{{ form.choices.html_name }}" x-ref="choicesInput" :value="serializeChoices()"/>
+    </div>
+{% endblock %}

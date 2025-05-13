@@ -1,0 +1,10 @@
+{% extends "djforms/fields/wrap.html" %}
+{% load django_bootstrap5 %}
+
+{% block wrap %}
+    {% bootstrap_field form.question show_label=False %}
+    {% bootstrap_field form.description show_label=False %}
+    <input readonly placeholder="단답형 텍스트" value=""
+           type="text" class="form-control-plaintext border-bottom"
+           style="border-radius:0; box-shadow:none; border-width:0 0 1px 0; font-size:16px;" />
+{% endblock %}
