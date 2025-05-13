@@ -41,7 +41,7 @@ def form_template_edit(request, pk):
     form_template = get_object_or_404(FormTemplate, pk=pk)
 
     form_template_field_form_list = []
-    form_template_field_qs = form_template.field_set.all()
+    form_template_field_qs = form_template.field_set.all().order_by("order")
 
     if request.method == "POST":
         form_template_form = FormTemplateForm(
@@ -56,8 +56,6 @@ def form_template_edit(request, pk):
             )
             if form.is_valid():
                 form.save()
-            else:
-                print("FormTemplateFieldForm.errors :", form.errors)
 
             form_template_field_form_list.append(form)
 
@@ -118,21 +116,20 @@ def form_template_field_delete(request, form_template_pk: int, pk: int):
     form_template_field = qs.first()
     if form_template_field is not None:
         form_template_field.delete()
-    # 204 응답을 하면, htmx는 swap 동작을 하지 않습니다.
+    # 204 응답을 하면, htmx는 swap 동작을 하지 않습니다. 200 응답만 OK.
     return HttpResponse()
 
 
 @require_POST
 @login_required
-def form_template_field_reorder(request, form_pk):
-    form = get_object_or_404(FormTemplate, id=form_pk)
+def form_template_field_reorder(request, form_template_pk):
+    form_template = get_object_or_404(FormTemplate, pk=form_template_pk)
 
-    field_ids = request.POST.getlist("field_ids[]")
-    for position, field_id in enumerate(field_ids):
-        FormTemplateField.objects.filter(id=field_id, form=form).update(
-            position=position
-        )
-    return JsonResponse({"status": "success"})
+    field_ids = request.POST.getlist("field_ids")
+    for order, field_id in enumerate(field_ids):
+        qs = FormTemplateField.objects.filter(id=field_id, form_template=form_template)
+        qs.update(order=order)
+    return HttpResponse()
 
 
 def form_response_new(request, form_pk):

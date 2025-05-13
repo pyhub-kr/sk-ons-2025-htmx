@@ -1,53 +1,98 @@
 {% extends 'djforms/base.html' %}
-{% load django_bootstrap5 %}
+{% load django_bootstrap5 static %}
+
+{% block extra_head %}
+    <link rel="stylesheet" href="{% static 'djforms/css/drag-drop.css' %}" />
+{% endblock %}
 
 {% block content %}
-<form method="post" novalidate>
-    {% csrf_token %}
-    <div class="container py-4">
-        <div class="row">
-            <div class="col-md-3">
-                <div class="card mb-4">
-                    <div class="card-body">
-                        {% bootstrap_field form_template_form.title show_label=False %}
-                        {% bootstrap_field form_template_form.description show_label=False %}
-                        {% bootstrap_field form_template_form.allow_anonymous %}
-                        {% bootstrap_field form_template_form.is_active %}
-                        {% bootstrap_field form_template_form.expires_at show_label=False %}
-                        <button type="submit" class="btn btn-primary">
-                            Save
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-md-9">
-                <div class="row g-2 align-items-center mb-3">
-                    <div class="col">
-                        <select name="field_type_name" id="field-type-select" class="form-select">
-                            {% for value, label in field_type_choices %}
-                            <option value="{{ value }}">{{ label }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-primary"
-                            hx-get="{% url 'djforms:form_template_field_new' form_template.pk %}"
-                            hx-target="#field-list" hx-swap="beforeend" hx-include="#field-type-select">
-                            새 필드 추가
-                        </button>
+    <form method="post" novalidate>
+        {% csrf_token %}
+        <div class="container py-4">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="card mb-4">
+                        <div class="card-body">
+                            {% bootstrap_field form_template_form.title show_label=False %}
+                            {% bootstrap_field form_template_form.description show_label=False %}
+                            {% bootstrap_field form_template_form.allow_anonymous %}
+                            {% bootstrap_field form_template_form.is_active %}
+                            {% bootstrap_field form_template_form.expires_at show_label=False %}
+                            <button type="submit" class="btn btn-primary">
+                                Save
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div id="field-list" class="mt-4">
-                    {% for form_html in rendered_form_template_field_form_list %}
-                    {{ form_html }}
-                    {% endfor %}
+                <div class="col-md-9">
+                    <div class="row g-2 align-items-center mb-3">
+                        <div class="col">
+                            <select name="field_type_name" id="field-type-select" class="form-select">
+                                {% for value, label in field_type_choices %}
+                                    <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-auto">
+                            <button type="button" class="btn btn-primary"
+                                    hx-get="{% url 'djforms:form_template_field_new' form_template.pk %}"
+                                    hx-target="#field-list" hx-swap="beforeend" hx-include="#field-type-select">
+                                새 필드 추가
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="field-list" class="mt-4"
+                         data-reorder-url="{% url 'djforms:form_template_field_reorder' form_template.pk %}"
+                         x-data="{
+                            draggedItem: null,
+                            handleDragStart(e) {
+                                if (!e.target.closest('.wrap-form-template-field')) return;
+                                this.draggedItem = e.target.closest('.wrap-form-template-field');
+                                this.draggedItem.classList.add('dragging');
+                            },
+                            handleDragOver(e) {
+                                e.preventDefault();
+                                const draggingItem = this.draggedItem;
+                                if (!draggingItem) return;
+
+                                const siblings = [...e.currentTarget.querySelectorAll('.wrap-form-template-field:not(.dragging)')];
+                                const nextSibling = siblings.find(sibling => {
+                                    const box = sibling.getBoundingClientRect();
+                                    const offset = e.clientY - box.top - box.height / 2;
+                                    return offset < 0;
+                                });
+
+                                e.currentTarget.insertBefore(draggingItem, nextSibling);
+                            },
+                            handleDragEnd(e) {
+                                if (!this.draggedItem) return;
+                                this.draggedItem.classList.remove('dragging');
+                                this.updateFieldOrder();
+                                this.draggedItem = null;
+                            },
+                            updateFieldOrder() {
+                                const elList = this.$el.querySelectorAll('.wrap-form-template-field');
+                                const field_ids = Array.from(elList).map((el) => el.dataset.fieldId);
+                                
+                                htmx.ajax('POST', this.$el.dataset.reorderUrl, {
+                                    swap: 'none',
+                                    values: { 'field_ids': field_ids },
+                                    error: (error) => {
+                                        console.error('Failed to reorder fields :', error);
+                                    }
+                                });
+                            }
+                        }" @dragover="handleDragOver" @dragend="handleDragEnd">
+                        {% for form_html in rendered_form_template_field_form_list %}
+                            {{ form_html }}
+                        {% endfor %}
+                    </div>
                 </div>
             </div>
         </div>
-    </div>
-</form>
+    </form>
 
 
 {% endblock %}

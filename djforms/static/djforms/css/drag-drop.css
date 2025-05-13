@@ -1,0 +1,17 @@
+.card.dragging {
+    opacity: 0.5;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+}
+
+.card {
+    transition: transform 0.2s ease;
+}
+
+.card:hover {
+    transform: translateY(-2px);
+}
+
+.bi-grip-vertical {
+    cursor: move;
+}
