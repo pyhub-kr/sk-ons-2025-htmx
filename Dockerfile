@@ -1,19 +1,17 @@
 FROM python:3.11-slim
 
-# ubuntu pkg 설치
-RUN apt-get update \
-    && rm -rf /var/lib/apt/lists/* \
+RUN apt-get update && apt-get install -y python3-venv \
+    && rm -rf /var/lib/apt/lists/*
 
-# ubuntu working directory 설정
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
 WORKDIR /app
 
-# uv 설치
-RUN pip install uv
-
-RUN uv venv --python=3.11
+COPY requirements.txt .
+RUN pip install --upgrade pip && pip install -r requirements.txt
 
 COPY . .
-RUN uv sync
 
 
-# CMD ["uv", "run", "gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
+CMD ["gunicorn", "config.wsgi:application", "--bind", "0.0.0.0:8000"]
