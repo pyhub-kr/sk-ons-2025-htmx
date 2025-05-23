@@ -1,0 +1,16 @@
+{% load django_bootstrap5 %}
+
+<!doctype html>
+<html lang="ko">
+<head>
+    <title>Document</title>
+    <script src="//unpkg.com/htmx.org@2.0.4"></script>
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+</head>
+<body>
+    <h1>Blog</h1>
+
+    {% block content %}{% endblock %}
+</body>
+</html>

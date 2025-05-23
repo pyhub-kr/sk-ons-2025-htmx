@@ -1,3 +1,4 @@
+{% extends "blog/base.html" %}
 {% load partials %}
 
 {% partialdef post-list %}
@@ -17,18 +18,17 @@
     {% endif %}
 {% endpartialdef %}
 
-<script src="//unpkg.com/htmx.org@2.0.4"></script>
+{% block content %}
+    <a hx-get="{% url 'blog:post_new' %}"
+       hx-trigger="click"
+       hx-target="body"
+       hx-swap="afterend"
+       class="btn btn-primary"
+    >
+        New Post
+    </a>
 
-<body>
-    <h2>블로그</h2>
-
-    <a href="{% url 'blog:post_new' %}">New Post</a>
-
-    <div id="post-list">
+    <div>
         {% partial post-list %}
     </div>
-
-{#    {{ page_obj.has_next }}#}
-{#    {{ page_obj.next_page_number }}#}
-
-</body>
+{% endblock %}

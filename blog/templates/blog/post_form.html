@@ -1,23 +1,16 @@
-<!doctype html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport"
-          content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <meta http-equiv="X-UA-Compatible" content="ie=edge">
-    <title>Document</title>
-</head>
-<body>
+{% extends "blog/base.html" %}
+{% load django_bootstrap5 partials %}
 
-    <h2>Post Form</h2>
+{% partialdef post-form %}
+    <form method="post" novalidate>
+        {% csrf_token %}
+        {% bootstrap_form form %}
+        <input type="submit" />
+    </form>
+{% endpartialdef %}
 
-<form method="post" novalidate>
-    {% csrf_token %}
-    <table>
-        {{ form.as_table }}
-    </table>
-    <input type="submit" />
-</form>
-
-</body>
-</html>
+{% block content %}
+    <div class="container">
+        {% partial post-form %}
+    </div>
+{% endblock %}

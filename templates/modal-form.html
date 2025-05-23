@@ -1,0 +1,27 @@
+{% extends "components/modal.html" %}
+{% load django_bootstrap5 partials %}
+
+{% partialdef form %}
+    {# url : img src, a href, script src #}
+
+    {% bootstrap_messages %}
+
+    {% if not object.pk %}
+        <form hx-post="{{ form_url }}"
+              hx-trigger="submit"
+              hx-swap="outerHTML"
+              method="post" novalidate>
+            {% csrf_token %}
+            {% bootstrap_form form %}
+            <input type="submit" />
+        </form>
+    {% endif %}
+{% endpartialdef %}
+
+{% block modal-title %}
+    {{ title|default:"no title" }}
+{% endblock %}
+
+{% block modal-body %}
+    {% partial form %}
+{% endblock %}
