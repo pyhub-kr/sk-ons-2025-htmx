@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('', views.MainPostListView.as_view(), name='post-list'),
     path('basiccontent/', include('basiccontent.urls')),
+    path('blog/', include('blog.urls')),
 ]
 
 if settings.DEBUG:

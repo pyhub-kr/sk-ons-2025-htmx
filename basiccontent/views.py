@@ -31,18 +31,23 @@ class MainPostCreateView(CreateView):
     form_class = MainPostForm
     template_name = 'basiccontent/post_form.html'
 
-    def form_valid(self, form):
-        response = super().form_valid(form)
+    def form_valid(self, form) -> HttpResponse:
+        self.object = form.save()
+        # success_url로 이동하는 HttpResponse 응답 생성
+        # response = super().form_valid(form)
 
-        if self.request.headers.get('HX-Request'):
+        if self.request.htmx:
+        # if self.request.headers.get('HX-Request'):
             posts = MainPost.objects.all()
             return render(self.request, 'basiccontent/partials/post_list_partials.html', {'posts': posts})
-        return response
+        else:
+            # TODO: success_url로 이동 응답
+            return redirect(self.get_success_url())
 
-    def get_success_url(self):
-        if self.request.headers.get('HX-Request'):
-            return self.request.path
-        return super().get_success_url()
+    # def get_success_url(self):
+    #     if self.request.headers.get('HX-Request'):
+    #         return self.request.path
+    #     return super().get_success_url()
 
 
 class MainPostUpdateView(UpdateView):
