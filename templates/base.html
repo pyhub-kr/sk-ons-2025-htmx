@@ -185,7 +185,9 @@
     <meta charset="UTF-8">
     <title>SKO</title>
 </head>
-<body>
+
+<body hx-headers='{"x-csrftoken": "{{ csrf_token }}"}'>
+
 <nav class="navbar">
     <div class="navbar-container">
         <div class="navbar-menu">
