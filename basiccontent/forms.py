@@ -60,7 +60,7 @@ FileFormSet = modelformset_factory(File, form=FileForm, extra=0, can_delete=True
 
 
 class ContentTypeForm(forms.Form):
-    content_type = forms.ModelChoiceField(queryset=ContentType.objects.all(), initial=ContentType.objects.first())
+    content_type = forms.ModelChoiceField(queryset=ContentType.objects.all())#, initial=ContentType.objects.first())
 
 class ContentForm(forms.ModelForm):
     class Meta:
