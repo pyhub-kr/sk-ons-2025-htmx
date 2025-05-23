@@ -12,9 +12,15 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 
 from pathlib import Path
 import os
+from environ import Env
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+env = Env()
+ENV_PATH = Path(env.str("ENV_PATH", default=str(BASE_DIR / ".env")))
+if ENV_PATH.is_file():
+    env.read_env(ENV_PATH)
 
 
 # Quick-start development settings - unsuitable for production
@@ -164,3 +170,27 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+# django-storages
+AWS_STORAGE_BUCKET_NAME = env.str("AWS_STORAGE_BUCKET_NAME", default="")
+AWS_S3_ACCESS_KEY_ID = env.str("AWS_S3_ACCESS_KEY_ID", default="")
+AWS_S3_SECRET_ACCESS_KEY = env.str("AWS_S3_SECRET_ACCESS_KEY", default="")
+AWS_S3_REGION_NAME = env.str("AWS_S3_REGION_NAME", default="ap-northeast-2")
+
+import django
+
+if AWS_S3_ACCESS_KEY_ID and AWS_S3_SECRET_ACCESS_KEY and AWS_STORAGE_BUCKET_NAME:
+    # 장고 4.2부터 스토리지 클래스 지정방법이 변경되었습니다.
+    if django.VERSION < (4, 2):
+        DEFAULT_FILE_STORAGE = "mysite.storages.AwsMediaStorage"
+        STATICFILES_STORAGE = "mysite.storages.AwsStaticStorage"
+    else:
+        STORAGES = {
+            "default": {
+                "BACKEND": "config.storages.AwsMediaStorage",
+            },
+            "staticfiles": {
+                "BACKEND": "config.storages.AwsStaticStorage",
+            },
+        }
