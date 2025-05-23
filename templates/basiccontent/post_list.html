@@ -50,8 +50,11 @@
 {#                            </button>#}
                             <button
                                 class="btn btn-secondary mb-2 w-70"
-                                onclick="generateSurveyLink({{ post.id }})"
-                                data-post-id="{{ post.id }}">
+                                hx-get="{% url 'basiccontent:generate-survey-link' post.id %}"
+                                hx-trigger="click"
+                                hx-target="body"
+                                hx-swap="afterend"
+                            >
                                 설문 응답하기
                             </button>
                         </div>

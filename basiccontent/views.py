@@ -601,7 +601,12 @@ def generate_survey_link(request, post_id):
         reverse('basiccontent:survey-redirect', kwargs={'uuid': survey_link.uuid})
     )
 
-    return JsonResponse({'url': survey_url})
+    # return HttpResponse(f"<div>{survey_url}</div>")
+    return render(request, "basiccontent/generate_survey_link.html", {
+        'survey_url': survey_url,
+    })
+
+    # return JsonResponse({'url': survey_url})
 
 
 def survey_redirect(request, uuid):
