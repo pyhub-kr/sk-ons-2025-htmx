@@ -39,6 +39,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
 
+    'debug_toolbar',
+
     'allauth',
     'allauth.account',
     'dj_rest_auth',
@@ -68,6 +70,15 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     "django_htmx.middleware.HtmxMiddleware" #htmx
 ]
+
+if DEBUG:
+    MIDDLEWARE = [
+        'debug_toolbar.middleware.DebugToolbarMiddleware',
+     ] + MIDDLEWARE
+
+# django-debug-toolbar 에서는 DDT를 보여줄 아이피
+#  - 127.0.0.1 : 서버를 구동한 컴퓨터에서 직접 접속했을 때
+INTERNAL_IPS = ["127.0.0.1"]
 
 ROOT_URLCONF = 'config.urls'
 
@@ -138,6 +149,8 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'static')
+# 장고 이 외에 static 파일이 있을 후보 디렉토리 리스트
+#  runserver, collectstatic 명령에서 활용
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'staticfiles'),
 ]
