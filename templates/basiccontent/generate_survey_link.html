@@ -10,7 +10,7 @@
                 <p>아래 링크를 통해 설문에 응답할 수 있습니다. 이 링크는 24시간 동안 유효합니다.</p>
                 <div class="input-group mb-3">
                     <input type="text" class="form-control" value="{{ survey_url }}" readonly>
-                    <button class="btn btn-outline-secondary" type="button" onclick="copySurveyLink()">복사</button>
+                    {% include "components/copy-button.html" with text=survey_url %}
                 </div>
                 <div class="d-grid gap-2">
                     <a href="{{ survey_url }}" class="btn btn-primary" target="_blank">링크로 이동</a>

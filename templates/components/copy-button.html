@@ -1,0 +1,18 @@
+<div class="btn"
+     :class="copied ? 'btn-success' : 'btn-outline-secondary'"
+     x-data="{
+        copied: false,
+        copy(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                this.copied = true;
+                setTimeout(() => {
+                    this.copied = false;
+                }, 2000);
+            });
+        }
+    }"
+     x-text="copied ? '복사됨' : '복사'"
+     @click="copy($el.dataset.text)"
+     :data-text=`{{ text }}`
+>
+</div>
